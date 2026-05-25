@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Kalista visual standard.
+ *
+ * The single source of truth for design tokens is ./styles/tokens.css
+ * (imported from main.tsx before this file). Those tokens are OKLCH
+ * literals on --bg / --surface / --fg / --accent / --success / ... and
+ * tailwind.config.ts maps the shadcn keys (background, foreground,
+ * border, accent, ...) plus the v0.5 aliases onto them.
+ *
+ * DO NOT reintroduce an HSL channel block here or use `hsl(var(--x))`
+ * in components — it shadows the OKLCH ladder and silently regresses
+ * colour. Reach for the Tailwind token aliases (text-fg, bg-surface-2,
+ * bg-success, …) instead. The previous dead HSL block was removed in
+ * v0.4.90 (ui-ux-backlog P2-1) once all `hsl(var())` call sites migrated.
+ */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+}
+
+/* v0.5 styled checkbox — used in the Hosts list bulk-select column and
+ * any other dense table that adopts the same density. Tracks the active
+ * accent on `:checked` so a Settings → accent swap re-tints in place. */
+.kalista-cb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 3.5px;
+  border: 1px solid var(--border-2);
+  background: var(--surface);
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.kalista-cb:hover { border-color: var(--muted); }
+.kalista-cb:checked,
+.kalista-cb:indeterminate {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.kalista-cb:checked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent-fg);
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><path fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M3 7.5l2.8 2.8L11 4.5'/></svg>") center / 11px no-repeat;
+          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><path fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M3 7.5l2.8 2.8L11 4.5'/></svg>") center / 11px no-repeat;
+}
+.kalista-cb:indeterminate::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 6px;
+  height: 2px;
+  background: var(--accent-fg);
+  border-radius: 1px;
+}

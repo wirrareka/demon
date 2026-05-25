@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kalista · logo explorations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg:        oklch(0.165 0.008 250);
+    --surface:   oklch(0.198 0.008 250);
+    --surface-2: oklch(0.228 0.009 250);
+    --border:    oklch(0.290 0.014 250);
+    --fg:        oklch(0.975 0.003 250);
+    --fg-2:      oklch(0.860 0.006 250);
+    --muted:     oklch(0.640 0.012 250);
+    --paper:     oklch(0.995 0.003 85);
+    --ink:       oklch(0.185 0.012 250);
+    --cobalt:    oklch(0.62 0.21 260);
+    --solder:    oklch(0.74 0.17 60);
+    --pingora:   oklch(0.74 0.13 175);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--fg);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13px; line-height: 1.45;
+    font-feature-settings: 'cv11', 'ss01', 'tnum';
+  }
+  .page {
+    max-width: 1200px; margin: 0 auto;
+    padding: 56px 40px 96px;
+  }
+
+  header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-bottom: 28px; margin-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  header .sub {
+    color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+  }
+
+  section {
+    margin-top: 56px;
+  }
+  section > h2 {
+    margin: 0 0 4px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  section > .lede {
+    margin: 0 0 24px; color: var(--fg-2); font-size: 13px; max-width: 56ch;
+  }
+
+  /* — variation card — */
+  .vars {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  .var {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .var .canvas {
+    aspect-ratio: 1 / 1;
+    display: grid; place-items: center;
+    background:
+      radial-gradient(circle at 30% 20%, oklch(0.23 0.012 250), var(--surface) 60%);
+    padding: 32px;
+  }
+  .var .meta {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .var .meta .name {
+    font-size: 13px; font-weight: 600;
+  }
+  .var .meta .tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted);
+  }
+  .var .desc {
+    padding: 0 16px 16px;
+    color: var(--fg-2); font-size: 12px; line-height: 1.5;
+  }
+  .var.primary {
+    border-color: oklch(0.355 0.015 250);
+    box-shadow: 0 0 0 1px var(--cobalt) inset, 0 24px 48px -16px rgba(0,0,0,.4);
+    box-shadow: 0 24px 48px -16px rgba(0,0,0,.4);
+  }
+  .var.primary .meta .tag::before {
+    content: 'recommended · ';
+    color: var(--cobalt);
+  }
+
+  /* — size strip — */
+  .sizes {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .strip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px 32px;
+  }
+  .strip.paper { background: var(--paper); color: var(--ink); border-color: oklch(0.905 0.006 85); }
+  .strip .label {
+    display: block;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 24px;
+    color: var(--muted);
+  }
+  .strip.paper .label { color: oklch(0.50 0.011 250); }
+  .strip .row {
+    display: flex; align-items: flex-end; gap: 28px;
+    padding-bottom: 16px;
+  }
+  .strip .row + .row {
+    border-top: 1px dashed var(--border);
+    padding-top: 22px; margin-top: 6px;
+  }
+  .strip.paper .row + .row { border-color: oklch(0.905 0.006 85); }
+  .strip .item {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted);
+  }
+  .strip.paper .item { color: oklch(0.50 0.011 250); }
+
+  /* — app icon block — */
+  .app-icon-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+    margin-top: 8px;
+  }
+  .icon-tile {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .icon-tile .ico {
+    width: 160px; height: 160px;
+    border-radius: 36px;
+    display: grid; place-items: center;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.04),
+      0 24px 48px -12px rgba(0,0,0,.45);
+  }
+  .icon-tile .ico.var-ink {
+    background: linear-gradient(155deg, oklch(0.30 0.012 250), oklch(0.16 0.008 250));
+  }
+  .icon-tile .ico.var-paper {
+    background: linear-gradient(155deg, oklch(0.99 0.003 85), oklch(0.92 0.006 85));
+    box-shadow:
+      0 0 0 1px oklch(0.90 0.006 85),
+      0 24px 48px -12px rgba(20,18,26,.18);
+  }
+  .icon-tile .ico.var-cobalt {
+    background: linear-gradient(155deg, oklch(0.62 0.21 260), oklch(0.35 0.18 260));
+  }
+  .icon-tile .ico.var-solder {
+    background: linear-gradient(155deg, oklch(0.74 0.17 60), oklch(0.50 0.15 50));
+  }
+  .icon-tile .label {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted);
+  }
+
+  /* — wordmarks — */
+  .wordmark-row {
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .wordmark {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 36px 40px;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .wordmark.paper { background: var(--paper); color: var(--ink); border-color: oklch(0.905 0.006 85); }
+  .wordmark .word {
+    font-size: 32px; font-weight: 600; letter-spacing: -0.025em;
+  }
+  .wordmark .tag {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted);
+  }
+  .wordmark.paper .tag { color: oklch(0.50 0.011 250); }
+
+  /* — construction grid — */
+  .construction {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px;
+    display: grid; grid-template-columns: 1fr 1.3fr; gap: 40px;
+    align-items: center;
+  }
+  .construction .grid {
+    aspect-ratio: 1 / 1;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+  .construction h3 {
+    margin: 0 0 12px; font-size: 14px; font-weight: 600;
+  }
+  .construction p {
+    margin: 0 0 12px; font-size: 12.5px; color: var(--fg-2); line-height: 1.55;
+    max-width: 48ch;
+  }
+  .construction ul {
+    margin: 0; padding: 0 0 0 18px;
+    font-size: 12.5px; color: var(--fg-2); line-height: 1.6;
+  }
+  .construction code {
+    font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+    background: var(--surface-2); color: var(--fg);
+    padding: 1px 6px; border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div>
+      <h1>Kalista · logo explorations</h1>
+      <div style="color:var(--fg-2); font-size:12.5px; margin-top:6px; max-width:62ch;">
+        Four directions, one recommendation. The mark has to read as an operator tool —
+        geometric, restrained, legible at 16&nbsp;px. No gradients in the mark itself;
+        gradients live in the app-icon container.
+      </div>
+    </div>
+    <div class="sub">v0.5 · 2026-05-11</div>
+  </header>
+
+  <!-- ─────────── Variations ─────────── -->
+  <section>
+    <h2>Directions</h2>
+    <p class="lede">Each mark is built on a 24-unit grid with a 2-unit stroke. The
+       recommended direction earns the K-form by drawing it as the proxy itself —
+       many requests funnel into a single bar.</p>
+
+    <div class="vars">
+
+      <!-- ── 01 — Routing K — primary ── -->
+      <div class="var primary">
+        <div class="canvas">
+          <!-- K as routing convergence: vertical bar = the proxy, two diagonals = upstream/downstream paths -->
+          <svg viewBox="0 0 96 96" width="180" height="180" aria-label="Kalista routing K">
+            <g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="square" stroke-linejoin="miter" color="var(--fg)">
+              <!-- vertical bar -->
+              <line x1="22" y1="14" x2="22" y2="82"/>
+              <!-- upper arm — comes in from upper right, meets bar at midpoint -->
+              <line x1="76" y1="14" x2="22" y2="48"/>
+              <!-- lower arm — exits to lower right from same midpoint -->
+              <line x1="22" y1="48" x2="76" y2="82"/>
+              <!-- meeting node — small filled square at the convergence -->
+            </g>
+            <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="name">Convergence&nbsp;K</span>
+          <span class="tag">01</span>
+        </div>
+        <div class="desc">
+          The K is the proxy. Vertical bar = data plane. Two diagonals = upstreams
+          funneling in and clients routing out. Accent dot marks the convergence —
+          the only chromatic mark in the system, reads as a status LED.
+        </div>
+      </div>
+
+      <!-- ── 02 — Aperture ── -->
+      <div class="var">
+        <div class="canvas">
+          <svg viewBox="0 0 96 96" width="180" height="180" aria-label="Kalista aperture">
+            <g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="square" stroke-linejoin="miter" color="var(--fg)">
+              <!-- outer K formed by an offset square -->
+              <rect x="14" y="14" width="68" height="68"/>
+              <!-- inner aperture forming the K negative space -->
+              <line x1="14" y1="48" x2="48" y2="48"/>
+              <line x1="48" y1="48" x2="82" y2="14"/>
+              <line x1="48" y1="48" x2="82" y2="82"/>
+            </g>
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="name">Aperture</span>
+          <span class="tag">02</span>
+        </div>
+        <div class="desc">
+          Gateway reading: the outer square is the perimeter, the K-shape inside is the
+          path through it. Strong at favicon size; less distinctive than 01.
+        </div>
+      </div>
+
+      <!-- ── 03 — Refraction ── -->
+      <div class="var">
+        <div class="canvas">
+          <svg viewBox="0 0 96 96" width="180" height="180" aria-label="Kalista refraction">
+            <g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="square" stroke-linejoin="miter" color="var(--fg)">
+              <!-- prism triangle -->
+              <polygon points="24,76 72,76 48,18"/>
+              <!-- incoming beam left -->
+              <line x1="6" y1="60" x2="34" y2="60"/>
+              <!-- outgoing beams right -->
+              <line x1="62" y1="48" x2="90" y2="40"/>
+              <line x1="62" y1="60" x2="90" y2="60"/>
+              <line x1="62" y1="72" x2="90" y2="80"/>
+            </g>
+          </svg>
+        </div>
+        <div class="meta">
+          <span class="name">Refraction</span>
+          <span class="tag">03</span>
+        </div>
+        <div class="desc">
+          Prism splits one beam into many — visually literal for what a reverse proxy
+          does. Beautiful, but reads as graphics software at small sizes. Use as a
+          marketing mark, not the app icon.
+        </div>
+      </div>
+
+      <!-- ── 04 — Wordmark only ── -->
+      <div class="var">
+        <div class="canvas">
+          <div style="font-size: 40px; font-weight: 600; letter-spacing: -0.03em; font-family: Inter; color: var(--fg);">
+            <span>kalista</span><span style="color: var(--cobalt);">.</span>
+          </div>
+        </div>
+        <div class="meta">
+          <span class="name">Wordmark</span>
+          <span class="tag">04</span>
+        </div>
+        <div class="desc">
+          For docs, CLI banners, the OSS readme. All-lowercase Inter at -0.03em
+          tracking. The terminal-cursor dot is the only chromatic element — same
+          accent dot that lives in the Convergence K.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─────────── Construction ─────────── -->
+  <section>
+    <h2>Construction · primary mark</h2>
+    <p class="lede">The Convergence K is drawn on a 96-unit canvas with a 7-unit
+       stroke, 14-unit safe area, and exact 45° diagonals. The convergence node is
+       8×8 — the only solid mass in the mark.</p>
+
+    <div class="construction">
+      <div class="grid">
+        <svg viewBox="0 0 96 96" width="100%" height="100%" aria-label="Construction grid">
+          <!-- background grid -->
+          <defs>
+            <pattern id="grid" width="8" height="8" patternUnits="userSpaceOnUse">
+              <path d="M 8 0 L 0 0 0 8" fill="none" stroke="var(--border)" stroke-width="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="96" height="96" fill="url(#grid)"/>
+          <!-- safe area -->
+          <rect x="14" y="14" width="68" height="68" fill="none" stroke="var(--muted)" stroke-width="0.5" stroke-dasharray="2 2"/>
+          <!-- guides through node -->
+          <line x1="0" y1="48" x2="96" y2="48" stroke="var(--cobalt)" stroke-width="0.5" stroke-dasharray="2 2" opacity="0.5"/>
+          <line x1="22" y1="0" x2="22" y2="96" stroke="var(--cobalt)" stroke-width="0.5" stroke-dasharray="2 2" opacity="0.5"/>
+          <!-- mark -->
+          <g fill="none" stroke="var(--fg)" stroke-width="7" stroke-linecap="square">
+            <line x1="22" y1="14" x2="22" y2="82"/>
+            <line x1="76" y1="14" x2="22" y2="48"/>
+            <line x1="22" y1="48" x2="76" y2="82"/>
+          </g>
+          <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+        </svg>
+      </div>
+      <div>
+        <h3>Why this mark</h3>
+        <p>The K names the product but the geometry tells you what it does. Two paths
+           converge into one bar, the convergence is highlighted by the only colored
+           pixel in the system. That node also doubles as a status indicator at the
+           top of the sidebar — green when the data plane is healthy, amber while
+           reloading config, red on failure.</p>
+        <ul>
+          <li>Stroke: <code>7</code> units on a <code>96</code> grid (~7.3%)</li>
+          <li>Diagonals: exactly 45°, meeting the bar at midpoint <code>(22, 48)</code></li>
+          <li>Convergence node: <code>8×8</code>, centered on the meeting point</li>
+          <li>Safe area: <code>14</code> units on all sides (14.6% padding)</li>
+          <li>Min legible size: <code>16&nbsp;px</code> favicon (tested)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── Size ladder ─────────── -->
+  <section>
+    <h2>Size ladder</h2>
+    <p class="lede">The mark holds from 16&nbsp;px favicon to 512&nbsp;px app icon
+       without optical adjustment. Both surface tones tested.</p>
+
+    <div class="sizes">
+
+      <div class="strip">
+        <span class="label">Ink (dark surfaces)</span>
+        <div class="row">
+          <div class="item">
+            <svg viewBox="0 0 96 96" width="16" height="16">
+              <g fill="none" stroke="var(--fg)" stroke-width="9" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+              <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+            </svg>
+            <span>16</span>
+          </div>
+          <div class="item">
+            <svg viewBox="0 0 96 96" width="24" height="24">
+              <g fill="none" stroke="var(--fg)" stroke-width="8" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+              <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+            </svg>
+            <span>24</span>
+          </div>
+          <div class="item">
+            <svg viewBox="0 0 96 96" width="40" height="40">
+              <g fill="none" stroke="var(--fg)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+              <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+            </svg>
+            <span>40</span>
+          </div>
+          <div class="item">
+            <svg viewBox="0 0 96 96" width="64" height="64">
+              <g fill="none" stroke="var(--fg)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+              <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+            </svg>
+            <span>64</span>
+          </div>
+          <div class="item">
+            <svg viewBox="0 0 96 96" width="96" height="96">
+              <g fill="none" stroke="var(--fg)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+              <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+            </svg>
+            <span>96</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="strip paper">
+        <span class="label">Paper (light surfaces)</span>
+        <div class="row">
+          <div class="item">
+            <svg viewBox="0 0 96 96" width="16" height="16">
+              <g fill="none" stroke="var(--ink)" stroke-width="9" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+              <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+            </svg>
+            <span>16</span>
+          </div>
+          <div class="item">
+            <svg viewBox="0 0 96 96" width="24" height="24">
+              <g fill="none" stroke="var(--ink)" stroke-width="8" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+              <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+            </svg>
+            <span>24</span>
+          </div>
+          <div class="item">
+            <svg viewBox="0 0 96 96" width="40" height="40">
+              <g fill="none" stroke="var(--ink)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+              <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+            </svg>
+            <span>40</span>
+          </div>
+          <div class="item">
+            <svg viewBox="0 0 96 96" width="64" height="64">
+              <g fill="none" stroke="var(--ink)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+              <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+            </svg>
+            <span>64</span>
+          </div>
+          <div class="item">
+            <svg viewBox="0 0 96 96" width="96" height="96">
+              <g fill="none" stroke="var(--ink)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+              <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+            </svg>
+            <span>96</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─────────── App icons ─────────── -->
+  <section>
+    <h2>App icon · macOS / iOS / Linux launcher</h2>
+    <p class="lede">Same mark, four containers. Subtle gradient on the container,
+       solid mark — no embossing, no inner shadows. Corner radius 22.5% per iOS spec.</p>
+
+    <div class="app-icon-row">
+      <div class="icon-tile">
+        <div class="ico var-ink">
+          <svg viewBox="0 0 96 96" width="92" height="92">
+            <g fill="none" stroke="oklch(0.975 0.003 250)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+            <rect x="18" y="44" width="8" height="8" fill="oklch(0.62 0.21 260)"/>
+          </svg>
+        </div>
+        <span class="label">ink · default</span>
+      </div>
+      <div class="icon-tile">
+        <div class="ico var-paper">
+          <svg viewBox="0 0 96 96" width="92" height="92">
+            <g fill="none" stroke="oklch(0.185 0.012 250)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+            <rect x="18" y="44" width="8" height="8" fill="oklch(0.62 0.21 260)"/>
+          </svg>
+        </div>
+        <span class="label">paper · light</span>
+      </div>
+      <div class="icon-tile">
+        <div class="ico var-cobalt">
+          <svg viewBox="0 0 96 96" width="92" height="92">
+            <g fill="none" stroke="oklch(0.99 0.003 85)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+            <rect x="18" y="44" width="8" height="8" fill="oklch(0.99 0.003 85)"/>
+          </svg>
+        </div>
+        <span class="label">cobalt · accented</span>
+      </div>
+      <div class="icon-tile">
+        <div class="ico var-solder">
+          <svg viewBox="0 0 96 96" width="92" height="92">
+            <g fill="none" stroke="oklch(0.15 0.01 60)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+            <rect x="18" y="44" width="8" height="8" fill="oklch(0.15 0.01 60)"/>
+          </svg>
+        </div>
+        <span class="label">solder · warm</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── Wordmarks ─────────── -->
+  <section>
+    <h2>Wordmark + lockup</h2>
+    <p class="lede">Inline lockup: mark left, wordmark right. Used in the sidebar
+       header, OSS readme, and CLI banner.</p>
+
+    <div class="wordmark-row">
+      <div class="wordmark">
+        <svg viewBox="0 0 96 96" width="40" height="40">
+          <g fill="none" stroke="var(--fg)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+          <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+        </svg>
+        <span class="word">kalista</span>
+        <span class="tag">sidebar header · 40px</span>
+      </div>
+      <div class="wordmark paper">
+        <svg viewBox="0 0 96 96" width="40" height="40">
+          <g fill="none" stroke="var(--ink)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+          <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+        </svg>
+        <span class="word">kalista</span>
+        <span class="tag">light · 40px</span>
+      </div>
+      <div class="wordmark" style="background: oklch(0.10 0.005 250); padding: 24px 32px; font-family: 'JetBrains Mono', monospace;">
+        <svg viewBox="0 0 96 96" width="22" height="22">
+          <g fill="none" stroke="var(--fg)" stroke-width="9" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+          <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+        </svg>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--fg-2);">
+          <span style="color: var(--muted);">$&nbsp;</span>kalista <span style="color: var(--cobalt);">apply</span> --tenant prod
+        </span>
+        <span class="tag">cli banner</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── Don't ─────────── -->
+  <section>
+    <h2>Don't</h2>
+    <p class="lede">A short list of mistakes the mark forgives badly.</p>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+      <div class="var">
+        <div class="canvas" style="background: var(--surface);">
+          <svg viewBox="0 0 96 96" width="120" height="120">
+            <defs><linearGradient id="bad1" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="oklch(0.62 0.21 260)"/><stop offset="1" stop-color="oklch(0.70 0.19 295)"/></linearGradient></defs>
+            <g fill="none" stroke="url(#bad1)" stroke-width="7" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+            <rect x="18" y="44" width="8" height="8" fill="var(--cobalt)"/>
+          </svg>
+        </div>
+        <div class="meta"><span class="name" style="color: oklch(0.75 0.17 25);">no gradients on the mark</span><span class="tag">✕</span></div>
+      </div>
+      <div class="var">
+        <div class="canvas" style="background: var(--surface);">
+          <svg viewBox="0 0 96 96" width="120" height="120">
+            <g fill="none" stroke="var(--fg)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+            <circle cx="22" cy="48" r="5" fill="var(--cobalt)"/>
+          </svg>
+        </div>
+        <div class="meta"><span class="name" style="color: oklch(0.75 0.17 25);">no rounded caps</span><span class="tag">✕</span></div>
+      </div>
+      <div class="var">
+        <div class="canvas" style="background: var(--surface);">
+          <svg viewBox="0 0 96 96" width="120" height="120">
+            <g fill="none" stroke="var(--fg)" stroke-width="11" stroke-linecap="square"><line x1="22" y1="14" x2="22" y2="82"/><line x1="76" y1="14" x2="22" y2="48"/><line x1="22" y1="48" x2="76" y2="82"/></g>
+            <rect x="14" y="40" width="16" height="16" fill="var(--cobalt)"/>
+          </svg>
+        </div>
+        <div class="meta"><span class="name" style="color: oklch(0.75 0.17 25);">no heavier strokes</span><span class="tag">✕</span></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
