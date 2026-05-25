@@ -1,0 +1,31 @@
+# Rust
+/target
+**/target
+*.rs.bk
+Cargo.lock.orig
+
+# Node / web
+node_modules/
+dist/
+.vite/
+*.local
+
+# SQLite / runtime state
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+# Secrets / local config (NEVER commit)
+*.pem
+*.key
+*.p12
+.env
+.env.*
+config.local.*
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
