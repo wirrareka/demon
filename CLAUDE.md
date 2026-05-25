@@ -1,3 +1,38 @@
+# proximiio.demon — Claude Code notes
+
+Always-on Rust/Axum DevOps control-plane daemon — the single auditable brain for the
+EU+UAE in-house fleet (FreeBSD core + Linux per-tenant). Next-gen of `proximiio-tui`.
+Spec lives in `docs/` (design package) + `docs/planning/` (build plan, reuse map,
+contracts, UI spec). Where docs conflict, **security wins**.
+
+## Cross-service coordination (quanto / proximi.io stack)
+
+You (`demon`) integrate tightly with 4 siblings (identity / vault / kalista / vulture)
++ infra. Coordinate via **files**, not by relaying messages through the human. Shared
+coordination dir (temporary): `/Users/wired/proximi-admin/proximiio-infra/coordination/`
+(moves to a neutral `quanto/contracts` repo later). Full protocol:
+`proximiio-infra/docs/proximiio-demon/04-collaboration-protocol.md`.
+
+- **On start, check your inbox** `…/coordination/inbox/demon/` and resolve/ack each note
+  (answer inline + flip `Status:`, or move durable agreements to `…/decisions/`).
+- **Read** `…/coordination/CONTRACTS.md` (where each service's LIVE contract is) and
+  `…/coordination/conventions/` (jwt-claims, audit-event-schema, residency, ports-env)
+  **before** building anything that touches a service boundary.
+- **When you need a contract**, drop a note in that service's `…/coordination/inbox/<svc>/`
+  and proceed against the documented contract once answered — don't relay via the human.
+- **When you change a boundary you own** (claim, route, port, header, endpoint), commit
+  it to `…/coordination/` (CONTRACTS.md / conventions) AND drop a note in the affected
+  inbox — don't only say it.
+- **Never** put secrets or per-tenant data in `coordination/`. Contracts only.
+
+Current cross-service state (see `docs/planning/02-auth-secrets-contracts.md`):
+- **identity** = `answered` — Auth-Code + PKCE-S256, `client_secret_basic`, claims
+  `sub/tenant_id/residency_group/roles/scope` (no `email`/`groups`/`acr`), one client per
+  per-group issuer. **demon owns its own per-op step-up** (identity has no acr/amr/WebAuthn).
+- **vault** = `partial` / escalated — terrapi-vault is an embedded SQLCipher at-rest lib,
+  **NOT a network broker**; Phase 2b/4 secrets layer is **blocked** pending a path A/B/C
+  decision (`inbox/vault/demon-needs-brokering-service.md`).
+
 # context-mode — MANDATORY routing rules
 
 You have context-mode MCP tools available. These rules are NOT optional — they protect your context window from flooding. A single unrouted command can dump 56 KB into context and waste the entire session.
