@@ -164,6 +164,25 @@ pub(crate) async fn callback<R: Residency>(
                 .into_response()
         }
     };
+    // Open a vault broker session so brokered leases are bound to this operator session
+    // (cascade-revoked on logout). Best-effort: a sealed/absent broker must not block login.
+    let vault_session = match s.vault.as_ref() {
+        Some(vault) => match vault
+            .open_session(u32::try_from(SESSION_TTL_SECS).ok(), Some(1800))
+            .await
+        {
+            Ok(vs) => {
+                tracing::info!("vault session opened for operator login");
+                Some(vs.session_id)
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "vault session open failed — continuing without brokered creds");
+                None
+            }
+        },
+        None => None,
+    };
+
     let sid = random_state();
     s.sessions.insert(
         sid.clone(),
@@ -171,6 +190,7 @@ pub(crate) async fn callback<R: Residency>(
             principal,
             factor: FactorLevel::None,
             expires_at: now_ms() + SESSION_TTL_SECS * 1000,
+            vault_session,
         },
     );
     tracing::info!(region = %R::REGION, "operator session opened");
@@ -202,6 +222,14 @@ pub(crate) async fn logout<R: Residency>(
                 Target::new("session", Some(id.clone())),
                 Outcome::Success,
             );
+            // Cascade-revoke the operator's brokered leases by ending the vault session.
+            if let (Some(vault), Some(vs)) = (s.vault.clone(), sess.vault_session.clone()) {
+                tokio::spawn(async move {
+                    if let Err(e) = vault.end_session(&vs).await {
+                        tracing::warn!(error = %e, "vault session end failed");
+                    }
+                });
+            }
         }
         s.sessions.remove(&id);
     }

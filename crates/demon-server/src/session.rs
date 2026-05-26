@@ -32,6 +32,9 @@ pub struct Session {
     pub factor: FactorLevel,
     /// Expiry (epoch ms).
     pub expires_at: i64,
+    /// Vault broker session id, if one was opened — its child leases cascade-revoke
+    /// when this operator session ends (revoke-on-session-end).
+    pub vault_session: Option<String>,
 }
 
 /// Opaque, cheaply-cloneable session store.
@@ -143,6 +146,7 @@ mod tests {
                 principal: principal(),
                 factor: FactorLevel::None,
                 expires_at: 1000,
+                vault_session: None,
             },
         );
         assert!(store.get("sid", 500).is_some());
@@ -160,6 +164,7 @@ mod tests {
                 principal: principal(),
                 factor: FactorLevel::None,
                 expires_at: 9999,
+                vault_session: None,
             },
         );
         store.remove("sid");
