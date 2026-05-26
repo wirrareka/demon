@@ -10,6 +10,7 @@
 
 mod auth;
 pub mod session;
+pub mod tls;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, Query, State};

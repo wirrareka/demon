@@ -27,6 +27,20 @@ pub struct Config {
     /// OIDC client config (set `DEMON_OIDC_ISSUER` to enable operator login). When
     /// `None`, the daemon runs but the API stays closed (no way to authenticate).
     pub oidc: Option<demon_clients::OidcConfig>,
+    /// mTLS material (set all of `DEMON_TLS_CERT`/`_KEY`/`_CLIENT_CA` to enable the
+    /// mTLS listener). When `None`, the daemon serves plain HTTP (dev only).
+    pub tls: Option<TlsPaths>,
+}
+
+/// Paths to the mTLS server cert, key, and the client-CA bundle (fleet Root CA).
+#[derive(Debug, Clone)]
+pub struct TlsPaths {
+    /// Server certificate chain (PEM).
+    pub cert: PathBuf,
+    /// Server private key (PEM).
+    pub key: PathBuf,
+    /// Client-CA bundle operator certs must chain to (PEM).
+    pub client_ca: PathBuf,
 }
 
 impl Config {
@@ -60,6 +74,18 @@ impl Config {
                 client_secret: std::env::var("DEMON_OIDC_CLIENT_SECRET").unwrap_or_default(),
                 redirect_uri: std::env::var("DEMON_OIDC_REDIRECT_URI").unwrap_or_default(),
             });
+        let tls = match (
+            std::env::var("DEMON_TLS_CERT"),
+            std::env::var("DEMON_TLS_KEY"),
+            std::env::var("DEMON_TLS_CLIENT_CA"),
+        ) {
+            (Ok(cert), Ok(key), Ok(client_ca)) => Some(TlsPaths {
+                cert: cert.into(),
+                key: key.into(),
+                client_ca: client_ca.into(),
+            }),
+            _ => None,
+        };
         Ok(Self {
             region,
             bind,
@@ -67,6 +93,7 @@ impl Config {
             ssh_user,
             poll_interval,
             oidc,
+            tls,
         })
     }
 }

@@ -16,6 +16,7 @@ use demon_store::Store;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init_tracing();
+    demon_server::tls::install_crypto_provider();
     let cfg = Config::from_env()?;
     tracing::info!(?cfg, "starting proximiio.demon");
 
@@ -67,15 +68,32 @@ async fn run<R: Residency>(cfg: Config) -> anyhow::Result<()> {
     };
     let app = router(state);
 
-    let listener = tokio::net::TcpListener::bind(cfg.bind)
-        .await
-        .with_context(|| format!("binding {}", cfg.bind))?;
-    tracing::info!(addr = %cfg.bind, region = %R::REGION, "demon listening");
-
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .context("server error")?;
+    if let Some(tls) = &cfg.tls {
+        let cert = std::fs::read(&tls.cert)
+            .with_context(|| format!("reading {}", tls.cert.display()))?;
+        let key =
+            std::fs::read(&tls.key).with_context(|| format!("reading {}", tls.key.display()))?;
+        let ca = std::fs::read(&tls.client_ca)
+            .with_context(|| format!("reading {}", tls.client_ca.display()))?;
+        let server_config =
+            demon_server::tls::server_config(&cert, &key, &ca).context("building mTLS config")?;
+        let rustls_config =
+            axum_server::tls_rustls::RustlsConfig::from_config(std::sync::Arc::new(server_config));
+        tracing::info!(addr = %cfg.bind, region = %R::REGION, "demon listening (mTLS)");
+        axum_server::bind_rustls(cfg.bind, rustls_config)
+            .serve(app.into_make_service())
+            .await
+            .context("mTLS server error")?;
+    } else {
+        let listener = tokio::net::TcpListener::bind(cfg.bind)
+            .await
+            .with_context(|| format!("binding {}", cfg.bind))?;
+        tracing::warn!(addr = %cfg.bind, region = %R::REGION, "demon listening WITHOUT TLS (dev) — set DEMON_TLS_* for mTLS");
+        axum::serve(listener, app)
+            .with_graceful_shutdown(shutdown_signal())
+            .await
+            .context("server error")?;
+    }
     Ok(())
 }
 

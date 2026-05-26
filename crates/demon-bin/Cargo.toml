@@ -19,6 +19,7 @@ demon-workers = { workspace = true }
 demon-clients = { workspace = true }
 tokio = { workspace = true }
 axum = { workspace = true }
+axum-server = { version = "0.7", features = ["tls-rustls"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
