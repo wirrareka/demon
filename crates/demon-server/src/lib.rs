@@ -8,17 +8,33 @@
 //! address only.
 #![forbid(unsafe_code)]
 
+mod auth;
+pub mod session;
+
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
-use axum::{Json, Router};
+use axum::{middleware, Json, Router};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
+use demon_clients::IdentityClient;
 use demon_core::{HealthSnapshot, Residency};
 use demon_store::{Store, StoreError};
+
+pub use session::{PendingStore, SessionStore};
+
+/// Current wall-clock time in epoch milliseconds.
+pub(crate) fn now_ms() -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|d| i64::try_from(d.as_millis()).ok())
+        .unwrap_or(i64::MAX)
+}
 
 /// Shared, cheaply-cloneable server state, scoped to one residency group.
 #[derive(Clone)]
@@ -29,13 +45,19 @@ pub struct AppState<R: Residency> {
     pub store: Store<R>,
     /// Live health-snapshot feed (fanned out by the poll worker).
     pub events: broadcast::Sender<HealthSnapshot>,
+    /// OIDC client for operator login (`None` ⇒ auth unconfigured ⇒ API stays closed).
+    pub identity: Option<IdentityClient>,
+    /// Active operator sessions.
+    pub sessions: SessionStore,
+    /// In-flight PKCE auth state.
+    pub pending: PendingStore,
 }
 
-/// Build the Phase 1 router for residency group `R`.
+/// Build the router for residency group `R`. Liveness (`/health`, `/version`) and the
+/// `/auth/*` login routes are public; everything under `/api/v1` is gated by
+/// [`auth::require_auth`] (fail closed).
 pub fn router<R: Residency>(state: AppState<R>) -> Router {
-    Router::new()
-        .route("/health", get(health::<R>))
-        .route("/version", get(version::<R>))
+    let protected = Router::new()
         .route("/api/v1/residency-groups", get(residency_groups::<R>))
         .route("/api/v1/hosts", get(hosts::<R>))
         .route("/api/v1/hosts/{id}", get(host_detail::<R>))
@@ -43,6 +65,18 @@ pub fn router<R: Residency>(state: AppState<R>) -> Router {
         .route("/api/v1/services", get(services::<R>))
         .route("/api/v1/tenants", get(tenants::<R>))
         .route("/api/v1/stream", get(stream::<R>))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::require_auth::<R>,
+        ));
+
+    Router::new()
+        .route("/health", get(health::<R>))
+        .route("/version", get(version::<R>))
+        .route("/auth/login", get(auth::login::<R>))
+        .route("/auth/callback", get(auth::callback::<R>))
+        .route("/auth/logout", get(auth::logout::<R>))
+        .merge(protected)
         .with_state(state)
 }
 
@@ -106,8 +140,8 @@ impl<T> ItemResponse<T> {
 }
 
 #[derive(Serialize)]
-struct ErrorBody {
-    error: String,
+pub(crate) struct ErrorBody {
+    pub(crate) error: String,
 }
 
 /// Wraps a [`StoreError`] as a `500` JSON response.
@@ -233,6 +267,9 @@ mod tests {
             version: "0.0.0",
             store,
             events,
+            identity: None,
+            sessions: SessionStore::new(),
+            pending: PendingStore::new(),
         });
     }
 }

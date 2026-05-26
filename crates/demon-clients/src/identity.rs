@@ -17,7 +17,10 @@ use sha2::{Digest, Sha256};
 use demon_core::Claims;
 
 /// Confidential-client configuration for one residency group.
-#[derive(Debug, Clone)]
+///
+/// `Debug` is hand-written to redact `client_secret` — the secret must never reach a
+/// log line (non-negotiable).
+#[derive(Clone)]
 pub struct OidcConfig {
     /// Issuer URL (exact, incl. trailing slash), e.g. `https://identity-eu.proximi.io/`.
     pub issuer: String,
@@ -27,6 +30,26 @@ pub struct OidcConfig {
     pub client_secret: String,
     /// Exact registered redirect URI.
     pub redirect_uri: String,
+}
+
+impl std::fmt::Debug for OidcConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OidcConfig")
+            .field("issuer", &self.issuer)
+            .field("client_id", &self.client_id)
+            .field("client_secret", &"<redacted>")
+            .field("redirect_uri", &self.redirect_uri)
+            .finish()
+    }
+}
+
+/// `IdentityClient` debug never exposes the config secret (see [`OidcConfig`]).
+impl std::fmt::Debug for IdentityClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IdentityClient")
+            .field("cfg", &self.cfg)
+            .finish_non_exhaustive()
+    }
 }
 
 /// OIDC discovery document (subset).
@@ -170,7 +193,7 @@ pub fn decode_claims(
 }
 
 /// The identity OIDC client for one residency group.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct IdentityClient {
     cfg: OidcConfig,
     http: reqwest::Client,
@@ -184,6 +207,24 @@ impl IdentityClient {
             cfg,
             http: reqwest::Client::new(),
         }
+    }
+
+    /// Registered `client_id`.
+    #[must_use]
+    pub fn client_id(&self) -> &str {
+        &self.cfg.client_id
+    }
+
+    /// Registered redirect URI.
+    #[must_use]
+    pub fn redirect_uri(&self) -> &str {
+        &self.cfg.redirect_uri
+    }
+
+    /// Configured issuer.
+    #[must_use]
+    pub fn issuer(&self) -> &str {
+        &self.cfg.issuer
     }
 
     /// Fetch and validate the OIDC discovery document. Enforces exact issuer match.

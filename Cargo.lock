@@ -245,6 +245,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "axum",
+ "demon-clients",
  "demon-collect",
  "demon-core",
  "demon-server",
@@ -307,6 +308,7 @@ name = "demon-server"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "demon-clients",
  "demon-core",
  "demon-store",
  "serde",

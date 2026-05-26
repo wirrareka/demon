@@ -42,10 +42,18 @@ async fn run<R: Residency>(cfg: Config) -> anyhow::Result<()> {
     ));
     tracing::info!(poll_secs = cfg.poll_interval.as_secs(), "health poller started");
 
+    let identity = cfg.oidc.clone().map(demon_clients::IdentityClient::new);
+    if identity.is_none() {
+        tracing::warn!("OIDC not configured (DEMON_OIDC_ISSUER unset) — API stays closed");
+    }
+
     let state = AppState {
         version: env!("CARGO_PKG_VERSION"),
         store,
         events,
+        identity,
+        sessions: demon_server::SessionStore::new(),
+        pending: demon_server::PendingStore::new(),
     };
     let app = router(state);
 

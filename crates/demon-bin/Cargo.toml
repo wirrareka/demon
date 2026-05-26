@@ -16,6 +16,7 @@ demon-store = { workspace = true }
 demon-server = { workspace = true }
 demon-collect = { workspace = true }
 demon-workers = { workspace = true }
+demon-clients = { workspace = true }
 tokio = { workspace = true }
 axum = { workspace = true }
 tracing = { workspace = true }

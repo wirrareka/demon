@@ -24,6 +24,9 @@ pub struct Config {
     pub ssh_user: String,
     /// Health poll interval (`DEMON_POLL_SECS`, default `60`).
     pub poll_interval: Duration,
+    /// OIDC client config (set `DEMON_OIDC_ISSUER` to enable operator login). When
+    /// `None`, the daemon runs but the API stays closed (no way to authenticate).
+    pub oidc: Option<demon_clients::OidcConfig>,
 }
 
 impl Config {
@@ -49,12 +52,21 @@ impl Config {
             .and_then(|s| s.parse().ok())
             .unwrap_or(60);
         let poll_interval = Duration::from_secs(poll_secs.max(1));
+        let oidc = std::env::var("DEMON_OIDC_ISSUER")
+            .ok()
+            .map(|issuer| demon_clients::OidcConfig {
+                issuer,
+                client_id: std::env::var("DEMON_OIDC_CLIENT_ID").unwrap_or_default(),
+                client_secret: std::env::var("DEMON_OIDC_CLIENT_SECRET").unwrap_or_default(),
+                redirect_uri: std::env::var("DEMON_OIDC_REDIRECT_URI").unwrap_or_default(),
+            });
         Ok(Self {
             region,
             bind,
             db_path,
             ssh_user,
             poll_interval,
+            oidc,
         })
     }
 }
