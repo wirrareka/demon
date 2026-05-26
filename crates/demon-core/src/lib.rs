@@ -20,6 +20,7 @@ pub mod authorize;
 pub mod contracts;
 pub mod health;
 pub mod inventory;
+pub mod mutation;
 pub mod residency;
 
 pub use action::{ActionClass, ActionSpec, Capability};
@@ -34,4 +35,7 @@ pub use contracts::{
 };
 pub use health::HealthStatus;
 pub use inventory::{Fleet, HealthSnapshot, Host, Service, TargetKind, Tenant};
+pub use mutation::{
+    available_actions, ApprovalError, DualControl, GuardedAction, JobState, Plan,
+};
 pub use residency::{Eu, Region, Residency, Uae};
