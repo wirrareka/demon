@@ -26,6 +26,19 @@ pub enum Role {
 }
 
 impl Role {
+    /// Map a `roles`-claim string to a [`Role`]. Unrecognised strings yield `None`
+    /// (and are simply ignored when building a principal).
+    #[must_use]
+    pub fn from_claim(s: &str) -> Option<Role> {
+        match s {
+            "viewer" => Some(Role::Viewer),
+            "operator" => Some(Role::Operator),
+            "senior" => Some(Role::Senior),
+            "break_glass" | "break-glass" | "breakglass" => Some(Role::BreakGlass),
+            _ => None,
+        }
+    }
+
     /// Whether this role may perform the given action class.
     #[must_use]
     pub const fn permits(self, class: ActionClass) -> bool {

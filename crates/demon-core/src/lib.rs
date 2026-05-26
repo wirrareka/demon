@@ -14,6 +14,7 @@
 
 pub mod action;
 pub mod audit;
+pub mod auth;
 pub mod authorize;
 pub mod contracts;
 pub mod health;
@@ -21,6 +22,7 @@ pub mod inventory;
 pub mod residency;
 
 pub use action::{ActionClass, ActionSpec, Capability};
+pub use auth::{principal_from_claims, AuthnError, Claims, FactorLevel, FactorPolicy};
 pub use audit::{AuditChain, AuditRecord, GENESIS_HASH};
 pub use authorize::{authorize, AuthzError, Principal, Role};
 pub use contracts::{
