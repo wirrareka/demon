@@ -17,6 +17,14 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<Page>("fleet");
   const [selectedHost, setSelectedHost] = useState<string | null>(null);
+  const [operator, setOperator] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .me()
+      .then((m) => setOperator(m.sub))
+      .catch(() => setOperator(null));
+  }, []);
 
   // Version is public (works even when the API is gated); fleet needs auth/dev-mode.
   useEffect(() => {
@@ -74,6 +82,7 @@ export function App() {
         setSelectedHost(null);
         setPage(p);
       }}
+      operator={operator}
     >
       {page === "fleet" && selectedHost && (
         <HostDetailPage

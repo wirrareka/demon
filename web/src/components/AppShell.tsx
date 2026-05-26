@@ -32,6 +32,7 @@ export function AppShell({
   live,
   active,
   onNavigate,
+  operator,
   children,
 }: {
   region: string;
@@ -39,6 +40,7 @@ export function AppShell({
   live: boolean;
   active: Page;
   onNavigate: (page: Page) => void;
+  operator: string | null;
   children: ReactNode;
 }) {
   return (
@@ -93,6 +95,21 @@ export function AppShell({
               />
               {live ? "live" : "offline"}
             </span>
+            {operator ? (
+              <span className="flex items-center gap-2 text-muted">
+                <span className="text-fg-2">{operator}</span>
+                <a href="/auth/logout" className="hover:text-fg">
+                  Logout
+                </a>
+              </span>
+            ) : (
+              <a
+                href="/auth/login"
+                className="rounded-md border border-border bg-surface-2 px-2 py-0.5 text-fg hover:bg-surface-3"
+              >
+                Login
+              </a>
+            )}
           </div>
         </header>
         <main className="min-h-0 flex-1 overflow-auto bg-bg p-5">{children}</main>

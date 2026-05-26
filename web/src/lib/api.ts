@@ -40,6 +40,13 @@ export interface VersionInfo {
   region: string;
 }
 
+export interface Me {
+  sub: string;
+  roles: string[];
+  residency: string;
+  factor: string;
+}
+
 interface ListResponse<T> {
   data: T[];
   available_actions: string[];
@@ -155,6 +162,7 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
 
 export const api = {
   version: () => getJson<VersionInfo>("/version"),
+  me: () => getJson<Me>("/api/v1/me"),
   hosts: () => getJson<ListResponse<Host>>("/api/v1/hosts").then((r) => r.data),
   host: (id: string) =>
     getJson<{ data: Host; available_actions: string[] }>(`/api/v1/hosts/${id}`),

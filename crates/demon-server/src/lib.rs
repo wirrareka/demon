@@ -90,6 +90,7 @@ pub struct AppState<R: Residency> {
 /// [`auth::require_auth`] (fail closed).
 pub fn router<R: Residency>(state: AppState<R>) -> Router {
     let protected = Router::new()
+        .route("/api/v1/me", get(me::<R>))
         .route("/api/v1/residency-groups", get(residency_groups::<R>))
         .route("/api/v1/hosts", get(hosts::<R>))
         .route("/api/v1/hosts/{id}", get(host_detail::<R>))
@@ -250,6 +251,34 @@ async fn version<R: Residency>(State(s): State<AppState<R>>) -> Json<VersionInfo
 }
 
 // ---- read API --------------------------------------------------------------
+
+#[derive(Serialize)]
+struct MeDto {
+    sub: String,
+    roles: Vec<&'static str>,
+    residency: &'static str,
+    factor: demon_core::FactorLevel,
+}
+
+async fn me<R: Residency>(Extension(ctx): Extension<AuthCtx>) -> Json<MeDto> {
+    let roles = ctx
+        .principal
+        .roles
+        .iter()
+        .map(|r| match r {
+            demon_core::Role::Viewer => "viewer",
+            demon_core::Role::Operator => "operator",
+            demon_core::Role::Senior => "senior",
+            demon_core::Role::BreakGlass => "break_glass",
+        })
+        .collect();
+    Json(MeDto {
+        sub: ctx.principal.sub.clone(),
+        roles,
+        residency: R::REGION.as_str(),
+        factor: ctx.factor,
+    })
+}
 
 async fn residency_groups<R: Residency>(
     State(_s): State<AppState<R>>,
