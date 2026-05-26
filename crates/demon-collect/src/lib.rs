@@ -215,6 +215,8 @@ impl SshTransport {
                 "BatchMode=yes".into(),
                 "-o".into(),
                 "StrictHostKeyChecking=accept-new".into(),
+                "-o".into(),
+                "ConnectTimeout=5".into(),
             ],
         }
     }
