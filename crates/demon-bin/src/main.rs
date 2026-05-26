@@ -87,6 +87,9 @@ async fn run<R: Residency>(cfg: Config, seed: bool) -> anyhow::Result<()> {
         metrics: std::env::var("DEMON_PROMETHEUS_URL")
             .ok()
             .map(demon_clients::PrometheusClient::new),
+        vault: std::env::var("DEMON_VAULT_URL")
+            .ok()
+            .map(demon_clients::VaultClient::new),
     };
     let app = router(state);
 

@@ -8,6 +8,7 @@
 pub mod identity;
 pub mod opensearch;
 pub mod prometheus;
+pub mod vault;
 
 pub use identity::{
     authorize_url, decode_claims, pkce, random_state, Discovery, IdentityClient, IdentityError,
@@ -15,3 +16,7 @@ pub use identity::{
 };
 pub use opensearch::{index_for, AuditShipError, OpenSearchAudit};
 pub use prometheus::{PromError, PrometheusClient};
+pub use vault::{
+    Ack, CredsResponse, Lease, SealStatus, SessionEndResponse, SessionOpenResponse, SshCaResponse,
+    SshSignRequest, SshSignResponse, VaultClient, VaultError,
+};

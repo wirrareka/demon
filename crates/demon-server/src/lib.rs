@@ -24,7 +24,7 @@ use axum::{middleware, Extension, Json, Router};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
-use demon_clients::{IdentityClient, OpenSearchAudit, PrometheusClient};
+use demon_clients::{IdentityClient, OpenSearchAudit, PrometheusClient, VaultClient, VaultError};
 use demon_collect::SshTransport;
 use demon_core::{available_actions, GuardedAction, HealthSnapshot, Residency};
 use demon_store::{Store, StoreError};
@@ -83,6 +83,8 @@ pub struct AppState<R: Residency> {
     pub webauthn: Option<std::sync::Arc<webauthn::WebauthnCtx>>,
     /// Group-local Prometheus client for the bottleneck load feed (`None` ⇒ disabled).
     pub metrics: Option<PrometheusClient>,
+    /// terrapi-vault secrets-broker client (`None` ⇒ secrets layer not configured).
+    pub vault: Option<VaultClient>,
 }
 
 /// Build the router for residency group `R`. Liveness (`/health`, `/version`) and the
@@ -100,6 +102,7 @@ pub fn router<R: Residency>(state: AppState<R>) -> Router {
         .route("/api/v1/tenants", get(tenants::<R>))
         .route("/api/v1/audit", get(audit_list::<R>))
         .route("/api/v1/audit/verify", get(audit_verify::<R>))
+        .route("/api/v1/secrets/status", get(secrets_status::<R>))
         .route("/api/v1/stream", get(stream::<R>))
         .route("/api/v1/jobs", get(jobs::list::<R>).post(jobs::create::<R>))
         .route("/api/v1/jobs/{id}", get(jobs::get::<R>))
@@ -425,6 +428,41 @@ async fn audit_verify<R: Residency>(
     }))
 }
 
+#[derive(Serialize)]
+struct SecretsStatus {
+    configured: bool,
+    sealed: Option<bool>,
+    error: Option<String>,
+}
+
+/// Readiness of the vault secrets broker (configured? sealed?).
+async fn secrets_status<R: Residency>(State(s): State<AppState<R>>) -> Json<SecretsStatus> {
+    let Some(vault) = s.vault.as_ref() else {
+        return Json(SecretsStatus {
+            configured: false,
+            sealed: None,
+            error: None,
+        });
+    };
+    match vault.seal_status().await {
+        Ok(st) => Json(SecretsStatus {
+            configured: true,
+            sealed: Some(st.sealed),
+            error: None,
+        }),
+        Err(VaultError::Sealed) => Json(SecretsStatus {
+            configured: true,
+            sealed: Some(true),
+            error: None,
+        }),
+        Err(e) => Json(SecretsStatus {
+            configured: true,
+            sealed: None,
+            error: Some(e.to_string()),
+        }),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -449,6 +487,7 @@ mod tests {
             transport: SshTransport::new("ops"),
             webauthn: None,
             metrics: None,
+            vault: None,
         });
     }
 }
