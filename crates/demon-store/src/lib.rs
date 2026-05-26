@@ -38,6 +38,8 @@
 //! ```
 #![forbid(unsafe_code)]
 
+mod inventory;
+
 use std::marker::PhantomData;
 
 use demon_core::{Region, Residency};
@@ -61,6 +63,10 @@ pub enum StoreError {
         /// The offending value's region.
         value: Region,
     },
+    /// A stored value could not be decoded into its domain type (e.g. an unknown
+    /// enum string). Indicates schema/data corruption.
+    #[error("decode error: {0}")]
+    Decode(String),
 }
 
 /// A residency-scoped SQLite store.

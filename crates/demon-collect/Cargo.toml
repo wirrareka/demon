@@ -8,6 +8,8 @@ description = "SSH-over-WireGuard transport + check-*.sh line-contract collector
 
 [dependencies]
 demon-core = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
 
 [lints]
 workspace = true

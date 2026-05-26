@@ -27,13 +27,13 @@ async fn main() -> anyhow::Result<()> {
 
 /// Run the daemon for a single residency group `R`.
 async fn run<R: Residency>(cfg: Config) -> anyhow::Result<()> {
-    let _store = Store::<R>::open(&cfg.db_path)
+    let store = Store::<R>::open(&cfg.db_path)
         .await
         .with_context(|| format!("opening store at {}", cfg.db_path.display()))?;
 
     let state = AppState {
         version: env!("CARGO_PKG_VERSION"),
-        region: R::REGION,
+        store,
     };
     let app = router(state);
 
