@@ -13,6 +13,16 @@ use std::sync::{Arc, Mutex};
 
 use demon_core::{FactorLevel, Principal};
 
+/// Per-request auth context injected by the middleware into request extensions, so
+/// handlers know who is acting and at what step-up factor.
+#[derive(Debug, Clone)]
+pub struct AuthCtx {
+    /// The authenticated operator.
+    pub principal: Principal,
+    /// Highest step-up factor presented this session.
+    pub factor: FactorLevel,
+}
+
 /// An authenticated operator session.
 #[derive(Debug, Clone)]
 pub struct Session {

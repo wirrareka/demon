@@ -4,6 +4,7 @@
 //! snapshots. Domain enums are stored as their canonical wire strings and decoded
 //! back on read; an unrecognised string is a [`StoreError::Decode`].
 
+use demon_core::audit::{AuditChain, AuditRecord, GENESIS_HASH};
 use demon_core::{
     Fleet, HealthSnapshot, HealthStatus, Host, Region, Residency, Service, TargetKind, Tenant,
 };
@@ -304,6 +305,48 @@ impl<R: Residency> Store<R> {
         Ok(res.last_insert_rowid())
     }
 
+    /// Append a redacted, hash-chained audit record (the durable source of truth).
+    /// Reads the chain head, links the new row, and inserts it atomically enough for
+    /// the single-writer daemon.
+    ///
+    /// # Errors
+    /// Database error.
+    pub async fn append_audit(
+        &self,
+        actor: &str,
+        action: &str,
+        target: &str,
+        dry_run: bool,
+        redacted_payload: &str,
+        ts: i64,
+    ) -> Result<AuditRecord, StoreError> {
+        let head: Option<(i64, String)> =
+            sqlx::query_as("SELECT seq, hash FROM audit ORDER BY seq DESC LIMIT 1")
+                .fetch_optional(self.pool())
+                .await?;
+        let (seq, prev_hash) = match head {
+            Some((s, h)) => (u64::try_from(s).unwrap_or(0) + 1, h),
+            None => (0, GENESIS_HASH.to_owned()),
+        };
+        let rec = AuditChain::link(&prev_hash, seq, actor, action, target, dry_run, redacted_payload, ts);
+        sqlx::query(
+            "INSERT INTO audit (seq, prev_hash, hash, actor, action, target, dry_run, redacted_payload, ts)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        )
+        .bind(i64::try_from(rec.seq).unwrap_or(i64::MAX))
+        .bind(&rec.prev_hash)
+        .bind(&rec.hash)
+        .bind(&rec.actor)
+        .bind(&rec.action)
+        .bind(&rec.target)
+        .bind(i64::from(rec.dry_run))
+        .bind(&rec.redacted_payload)
+        .bind(rec.ts)
+        .execute(self.pool())
+        .await?;
+        Ok(rec)
+    }
+
     /// The latest health snapshot per area for a target (current health view).
     ///
     /// # Errors
@@ -367,6 +410,17 @@ mod tests {
             s.upsert_host(&h).await,
             Err(StoreError::ResidencyViolation { .. })
         ));
+    }
+
+    #[tokio::test]
+    async fn audit_append_chains_and_links() {
+        let s = Store::<Eu>::open_in_memory().await.unwrap();
+        let r0 = s.append_audit("op@x", "session.open", "session:1", false, "{}", 100).await.unwrap();
+        let r1 = s.append_audit("op@x", "service.restart", "host:core-1", false, "ok", 200).await.unwrap();
+        assert_eq!(r0.seq, 0);
+        assert_eq!(r1.seq, 1);
+        assert_eq!(r1.prev_hash, r0.hash); // chained
+        assert_ne!(r1.hash, r0.hash);
     }
 
     #[tokio::test]

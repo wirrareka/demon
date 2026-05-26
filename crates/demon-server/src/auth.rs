@@ -16,10 +16,13 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum::Json;
 use serde::Deserialize;
 
-use demon_core::{principal_from_claims, Actor, AuditEvent, FactorLevel, Outcome, Residency, Target};
+use demon_core::{
+    principal_from_claims, Actor, AuditEvent, FactorLevel, Outcome, Principal, Residency, Role,
+    Target,
+};
 use demon_clients::{authorize_url, pkce, random_state};
 
-use crate::session::{Pending, Session};
+use crate::session::{AuthCtx, Pending, Session};
 use crate::{now_ms, now_rfc3339, AppState, ErrorBody};
 
 /// Session cookie name. Prod adds the `__Host-` prefix + `Secure` over TLS.
@@ -209,25 +212,33 @@ pub(crate) async fn logout<R: Residency>(
 /// Fail-closed auth gate: requires a valid, unexpired session cookie.
 pub(crate) async fn require_auth<R: Residency>(
     State(s): State<AppState<R>>,
-    req: Request,
+    mut req: Request,
     next: Next,
 ) -> Response {
     if s.dev_no_auth {
+        // Synthetic break-glass operator at the strongest factor — DEV ONLY.
+        req.extensions_mut().insert(AuthCtx {
+            principal: Principal::new("dev", vec![Role::BreakGlass], R::REGION),
+            factor: FactorLevel::WebAuthnRoaming,
+        });
         return next.run(req).await;
     }
-    let authed = session_cookie(req.headers())
-        .and_then(|id| s.sessions.get(&id, now_ms()))
-        .is_some();
-    if authed {
-        next.run(req).await
-    } else {
-        (
+    let session = session_cookie(req.headers()).and_then(|id| s.sessions.get(&id, now_ms()));
+    match session {
+        Some(sess) => {
+            req.extensions_mut().insert(AuthCtx {
+                principal: sess.principal,
+                factor: sess.factor,
+            });
+            next.run(req).await
+        }
+        None => (
             StatusCode::UNAUTHORIZED,
             Json(ErrorBody {
                 error: "authentication required".into(),
             }),
         )
-            .into_response()
+            .into_response(),
     }
 }
 

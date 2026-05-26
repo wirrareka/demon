@@ -132,6 +132,45 @@ impl AuditChain {
         seq
     }
 
+    /// Pure helper: build the record at `seq` linked off `prev_hash`, without needing
+    /// the rest of the chain in memory. Used by the durable store to append one row.
+    #[must_use]
+    #[allow(clippy::too_many_arguments)] // mirrors the 8-field audit record
+    pub fn link(
+        prev_hash: &str,
+        seq: u64,
+        actor: &str,
+        action: &str,
+        target: &str,
+        dry_run: bool,
+        redacted_payload: &str,
+        ts: i64,
+    ) -> AuditRecord {
+        let seq_s = seq.to_string();
+        let ts_s = ts.to_string();
+        let hash = chain_hash(&[
+            prev_hash,
+            &seq_s,
+            actor,
+            action,
+            target,
+            dry_run_field(dry_run),
+            redacted_payload,
+            &ts_s,
+        ]);
+        AuditRecord {
+            seq,
+            prev_hash: prev_hash.to_owned(),
+            hash,
+            actor: actor.to_owned(),
+            action: action.to_owned(),
+            target: target.to_owned(),
+            dry_run,
+            redacted_payload: redacted_payload.to_owned(),
+            ts,
+        }
+    }
+
     /// Verify the whole chain: sequence numbers, predecessor links, and every hash.
     /// Returns the seq of the first broken record, or `Ok(())` if intact.
     ///

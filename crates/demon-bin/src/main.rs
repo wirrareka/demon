@@ -46,7 +46,7 @@ async fn run<R: Residency>(cfg: Config, seed: bool) -> anyhow::Result<()> {
     let transport = demon_collect::SshTransport::new(cfg.ssh_user.clone());
     tokio::spawn(demon_workers::run(
         store.clone(),
-        transport,
+        transport.clone(),
         events.clone(),
         cfg.poll_interval,
     ));
@@ -75,6 +75,8 @@ async fn run<R: Residency>(cfg: Config, seed: bool) -> anyhow::Result<()> {
         audit,
         node,
         dev_no_auth: cfg.dev_no_auth,
+        jobs: demon_server::JobStore::new(),
+        transport,
     };
     let app = router(state);
 

@@ -375,8 +375,10 @@ version = "0.0.0"
 dependencies = [
  "axum",
  "demon-clients",
+ "demon-collect",
  "demon-core",
  "demon-store",
+ "demon-workers",
  "rustls",
  "rustls-pemfile",
  "serde",

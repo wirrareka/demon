@@ -9,6 +9,7 @@
 #![forbid(unsafe_code)]
 
 mod auth;
+mod jobs;
 pub mod session;
 pub mod tls;
 
@@ -16,16 +17,18 @@ use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::routing::get;
-use axum::{middleware, Json, Router};
+use axum::routing::{get, post};
+use axum::{middleware, Extension, Json, Router};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
 use demon_clients::{IdentityClient, OpenSearchAudit};
-use demon_core::{HealthSnapshot, Residency};
+use demon_collect::SshTransport;
+use demon_core::{available_actions, GuardedAction, HealthSnapshot, Residency};
 use demon_store::{Store, StoreError};
 
-pub use session::{PendingStore, SessionStore};
+pub use jobs::JobStore;
+pub use session::{AuthCtx, PendingStore, SessionStore};
 
 /// Current wall-clock time in epoch milliseconds.
 pub(crate) fn now_ms() -> i64 {
@@ -66,6 +69,10 @@ pub struct AppState<R: Residency> {
     /// **DEV ONLY**: bypass the auth gate (`DEMON_DEV_NO_AUTH`). Must never be set in
     /// production — the daemon warns loudly at startup when it is.
     pub dev_no_auth: bool,
+    /// In-memory guarded-mutation job store.
+    pub jobs: JobStore,
+    /// SSH transport used to execute mutations + verify (shared with the poller).
+    pub transport: SshTransport,
 }
 
 /// Build the router for residency group `R`. Liveness (`/health`, `/version`) and the
@@ -80,6 +87,11 @@ pub fn router<R: Residency>(state: AppState<R>) -> Router {
         .route("/api/v1/services", get(services::<R>))
         .route("/api/v1/tenants", get(tenants::<R>))
         .route("/api/v1/stream", get(stream::<R>))
+        .route("/api/v1/jobs", get(jobs::list::<R>).post(jobs::create::<R>))
+        .route("/api/v1/jobs/{id}", get(jobs::get::<R>))
+        .route("/api/v1/jobs/{id}/approve", post(jobs::approve::<R>))
+        .route("/api/v1/jobs/{id}/confirm", post(jobs::confirm::<R>))
+        .route("/api/v1/jobs/{id}/apply", post(jobs::apply::<R>))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth::<R>,
@@ -143,15 +155,6 @@ impl<T> ListResponse<T> {
 struct ItemResponse<T> {
     data: T,
     available_actions: Vec<String>,
-}
-
-impl<T> ItemResponse<T> {
-    fn new(data: T) -> Self {
-        Self {
-            data,
-            available_actions: Vec::new(),
-        }
-    }
 }
 
 #[derive(Serialize)]
@@ -228,10 +231,21 @@ async fn hosts<R: Residency>(
 
 async fn host_detail<R: Residency>(
     State(s): State<AppState<R>>,
+    Extension(ctx): Extension<AuthCtx>,
     Path(id): Path<String>,
 ) -> Result<Response, AppError> {
     match s.store.get_host(&id).await? {
-        Some(h) => Ok(Json(ItemResponse::new(h)).into_response()),
+        Some(h) => {
+            let actions = available_actions(&ctx.principal.roles)
+                .into_iter()
+                .map(|a: GuardedAction| a.id().to_owned())
+                .collect();
+            Ok(Json(ItemResponse {
+                data: h,
+                available_actions: actions,
+            })
+            .into_response())
+        }
         None => Ok((
             StatusCode::NOT_FOUND,
             Json(ErrorBody {
@@ -288,6 +302,8 @@ mod tests {
             audit: None,
             node: "test".into(),
             dev_no_auth: false,
+            jobs: JobStore::new(),
+            transport: SshTransport::new("ops"),
         });
     }
 }

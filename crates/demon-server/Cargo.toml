@@ -10,6 +10,8 @@ description = "Axum REST + WebSocket surface for proximiio.demon."
 demon-core = { workspace = true }
 demon-store = { workspace = true }
 demon-clients = { workspace = true }
+demon-collect = { workspace = true }
+demon-workers = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
