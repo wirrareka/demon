@@ -22,6 +22,7 @@ pub mod contracts;
 pub mod health;
 pub mod inventory;
 pub mod mutation;
+pub mod reconcile;
 pub mod residency;
 pub mod runbook;
 
@@ -44,5 +45,6 @@ pub use inventory::{Fleet, HealthSnapshot, Host, Service, TargetKind, Tenant};
 pub use mutation::{
     available_actions, ApprovalError, DualControl, GuardedAction, JobState, Plan,
 };
+pub use reconcile::{reconcile, Drift, ReconcilePlan};
 pub use runbook::{RunStatus, RunbookId, RunbookRun, RunbookStep};
 pub use residency::{Eu, Region, Residency, Uae};
