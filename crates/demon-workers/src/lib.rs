@@ -157,17 +157,23 @@ mod tests {
         s
     }
 
+    const AREA_COUNT: usize = CheckArea::ALL.len();
+
     #[tokio::test]
     async fn poll_once_writes_all_areas() {
         let store = seeded_store().await;
         let n = poll_once(&store, &mock(), None, 5000).await.unwrap();
-        assert_eq!(n, 3);
+        assert_eq!(n, AREA_COUNT);
         let latest = store.latest_health("h1").await.unwrap();
-        assert_eq!(latest.len(), 3);
+        assert_eq!(latest.len(), AREA_COUNT);
+        // mocked areas roll up from their contracts...
         let fim = latest.iter().find(|h| h.area == "fim").unwrap();
         assert_eq!(fim.status, HealthStatus::Degraded); // drift=2
         let backup = latest.iter().find(|h| h.area == "backup").unwrap();
         assert_eq!(backup.status, HealthStatus::Up);
+        // ...unmocked areas degrade to Unknown (host "unreachable" for them).
+        let access = latest.iter().find(|h| h.area == "access").unwrap();
+        assert_eq!(access.status, HealthStatus::Unknown);
     }
 
     #[tokio::test]
@@ -175,12 +181,12 @@ mod tests {
         let store = seeded_store().await;
         let (tx, mut rx) = broadcast::channel(EVENT_CHANNEL_CAPACITY);
         let n = poll_once(&store, &mock(), Some(&tx), 5000).await.unwrap();
-        assert_eq!(n, 3);
+        assert_eq!(n, AREA_COUNT);
         let mut received = 0;
         while rx.try_recv().is_ok() {
             received += 1;
         }
-        assert_eq!(received, 3);
+        assert_eq!(received, AREA_COUNT);
     }
 
     #[tokio::test]
@@ -188,7 +194,7 @@ mod tests {
         let store = seeded_store().await;
         let empty = MockTransport::default(); // no canned responses -> NoMock errors
         let n = poll_once(&store, &empty, None, 5000).await.unwrap();
-        assert_eq!(n, 3);
+        assert_eq!(n, AREA_COUNT);
         let latest = store.latest_health("h1").await.unwrap();
         assert!(latest.iter().all(|h| h.status == HealthStatus::Unknown));
     }

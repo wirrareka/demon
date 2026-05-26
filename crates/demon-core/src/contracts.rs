@@ -215,6 +215,240 @@ pub fn parse_fim(output: &str) -> FimStatus {
     }
 }
 
+// ---- small field helpers --------------------------------------------------
+
+fn field(f: &BTreeMap<&str, &str>, k: &str) -> String {
+    f.get(k).map_or_else(String::new, |v| (*v).to_owned())
+}
+
+fn num<T>(f: &BTreeMap<&str, &str>, k: &str) -> T
+where
+    T: std::str::FromStr + Default,
+{
+    f.get(k).and_then(|v| v.parse().ok()).unwrap_or_default()
+}
+
+/// SSH access posture (`check-access.sh`):
+/// `ACCESS\thost\troot_ssh=<on|off>\tpassword_auth=<on|off>\tallow_users=<csv>\tssh_pf_restricted=<yes|no|unknown>\tops_user=<present|absent>\tops_sudo=<ok|broken|unknown>`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct AccessStatus {
+    pub host: String,
+    pub root_ssh: String,
+    pub password_auth: String,
+    pub allow_users: String,
+    pub ssh_pf_restricted: String,
+    pub ops_user: String,
+    pub ops_sudo: String,
+}
+
+impl AccessStatus {
+    /// Open exposure (`root_ssh=on`, `password_auth=on`, or `ssh_pf_restricted=no`) is
+    /// `Down`; missing ops user/sudo or unknown pf is `Degraded`; a fully locked-down
+    /// posture is `Up`.
+    #[must_use]
+    pub fn health(&self) -> HealthStatus {
+        if self.root_ssh == "on" || self.password_auth == "on" || self.ssh_pf_restricted == "no" {
+            HealthStatus::Down
+        } else if self.ops_sudo == "broken"
+            || self.ops_user == "absent"
+            || self.ssh_pf_restricted == "unknown"
+            || self.ops_sudo == "unknown"
+        {
+            HealthStatus::Degraded
+        } else if self.root_ssh == "off"
+            && self.password_auth == "off"
+            && self.ssh_pf_restricted == "yes"
+            && self.ops_sudo == "ok"
+        {
+            HealthStatus::Up
+        } else {
+            HealthStatus::Unknown
+        }
+    }
+}
+
+/// Parse `check-access.sh` output.
+#[must_use]
+pub fn parse_access(output: &str) -> AccessStatus {
+    let Some(f) = find_record(output, "ACCESS") else {
+        return AccessStatus::default();
+    };
+    AccessStatus {
+        host: field(&f, "host"),
+        root_ssh: field(&f, "root_ssh"),
+        password_auth: field(&f, "password_auth"),
+        allow_users: field(&f, "allow_users"),
+        ssh_pf_restricted: field(&f, "ssh_pf_restricted"),
+        ops_user: field(&f, "ops_user"),
+        ops_sudo: field(&f, "ops_sudo"),
+    }
+}
+
+/// Audit/security posture (`check-audit.sh`):
+/// `AUDIT\thost\tauditd=<on|off>\tblacklistd=<on|off>\tauth_failures_24h=<n>\twheel_users=<n>\tlisteners=<n>\tlast_scan=<epoch>`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct AuditStatus {
+    pub host: String,
+    pub auditd: String,
+    pub blacklistd: String,
+    pub auth_failures_24h: u32,
+    pub wheel_users: u32,
+    pub listeners: u32,
+    pub last_scan: i64,
+}
+
+impl AuditStatus {
+    /// `auditd` off ⇒ `Down` (no audit trail); `blacklistd` off ⇒ `Degraded`; both on
+    /// ⇒ `Up`; absent ⇒ `Unknown`.
+    #[must_use]
+    pub fn health(&self) -> HealthStatus {
+        match self.auditd.as_str() {
+            "" => HealthStatus::Unknown,
+            "on" if self.blacklistd == "on" => HealthStatus::Up,
+            "on" => HealthStatus::Degraded,
+            _ => HealthStatus::Down,
+        }
+    }
+}
+
+/// Parse `check-audit.sh` output.
+#[must_use]
+pub fn parse_audit(output: &str) -> AuditStatus {
+    let Some(f) = find_record(output, "AUDIT") else {
+        return AuditStatus::default();
+    };
+    AuditStatus {
+        host: field(&f, "host"),
+        auditd: field(&f, "auditd"),
+        blacklistd: field(&f, "blacklistd"),
+        auth_failures_24h: num(&f, "auth_failures_24h"),
+        wheel_users: num(&f, "wheel_users"),
+        listeners: num(&f, "listeners"),
+        last_scan: num(&f, "last_scan"),
+    }
+}
+
+/// Config/git drift (`check-drift.sh`):
+/// `DRIFT\thost\tcommit=<sha12>\tdirty=<n>\tahead=<n>\tbehind=<n>\tverdict=<ok|drift|unknown>`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct DriftStatus {
+    pub host: String,
+    pub commit: String,
+    pub dirty: u32,
+    pub ahead: u32,
+    pub behind: u32,
+    pub verdict: String,
+}
+
+impl DriftStatus {
+    /// `ok` ⇒ `Up`, `drift` ⇒ `Degraded`, else `Unknown`.
+    #[must_use]
+    pub fn health(&self) -> HealthStatus {
+        match self.verdict.as_str() {
+            "ok" => HealthStatus::Up,
+            "drift" => HealthStatus::Degraded,
+            _ => HealthStatus::Unknown,
+        }
+    }
+}
+
+/// Parse `check-drift.sh` output.
+#[must_use]
+pub fn parse_drift(output: &str) -> DriftStatus {
+    let Some(f) = find_record(output, "DRIFT") else {
+        return DriftStatus::default();
+    };
+    DriftStatus {
+        host: field(&f, "host"),
+        commit: field(&f, "commit"),
+        dirty: num(&f, "dirty"),
+        ahead: num(&f, "ahead"),
+        behind: num(&f, "behind"),
+        verdict: field(&f, "verdict"),
+    }
+}
+
+/// WireGuard residency posture (`check-residency.sh`):
+/// `RESIDENCY\thost\tgroup=<eu|uae|unknown>\tpeers=<n>\tcross_group_peers=<n>\tverdict=<ok|violation|unknown>`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct ResidencyStatus {
+    pub host: String,
+    pub group: String,
+    pub peers: u32,
+    pub cross_group_peers: u32,
+    pub verdict: String,
+}
+
+impl ResidencyStatus {
+    /// `ok` ⇒ `Up`; `violation` ⇒ `Down` (a residency breach is critical); else
+    /// `Unknown`.
+    #[must_use]
+    pub fn health(&self) -> HealthStatus {
+        match self.verdict.as_str() {
+            "ok" => HealthStatus::Up,
+            "violation" => HealthStatus::Down,
+            _ => HealthStatus::Unknown,
+        }
+    }
+}
+
+/// Parse `check-residency.sh` output.
+#[must_use]
+pub fn parse_residency(output: &str) -> ResidencyStatus {
+    let Some(f) = find_record(output, "RESIDENCY") else {
+        return ResidencyStatus::default();
+    };
+    ResidencyStatus {
+        host: field(&f, "host"),
+        group: field(&f, "group"),
+        peers: num(&f, "peers"),
+        cross_group_peers: num(&f, "cross_group_peers"),
+        verdict: field(&f, "verdict"),
+    }
+}
+
+/// CIS compliance posture (`check-compliance.sh`):
+/// `COMPLIANCE\thost\tprofile=cis-freebsd\tpass=<n>\tfail=<n>\twarn=<n>\tscore=<pct>`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct ComplianceStatus {
+    pub host: String,
+    pub profile: String,
+    pub pass: u32,
+    pub fail: u32,
+    pub warn: u32,
+    pub score: String,
+}
+
+impl ComplianceStatus {
+    /// No checks ⇒ `Unknown`; any fail or warn ⇒ `Degraded`; all-pass ⇒ `Up`.
+    #[must_use]
+    pub fn health(&self) -> HealthStatus {
+        if self.pass == 0 && self.fail == 0 && self.warn == 0 {
+            HealthStatus::Unknown
+        } else if self.fail > 0 || self.warn > 0 {
+            HealthStatus::Degraded
+        } else {
+            HealthStatus::Up
+        }
+    }
+}
+
+/// Parse `check-compliance.sh` output.
+#[must_use]
+pub fn parse_compliance(output: &str) -> ComplianceStatus {
+    let Some(f) = find_record(output, "COMPLIANCE") else {
+        return ComplianceStatus::default();
+    };
+    ComplianceStatus {
+        host: field(&f, "host"),
+        profile: field(&f, "profile"),
+        pass: num(&f, "pass"),
+        fail: num(&f, "fail"),
+        warn: num(&f, "warn"),
+        score: field(&f, "score"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -290,5 +524,55 @@ mod tests {
         let missing = parse_fim("FIM\thost=h\tlast_verify=0\tdrift=0\tpkg_mismatch=0\tbaseline=missing");
         assert_eq!(missing.health(), HealthStatus::Down);
         assert_eq!(parse_fim("").health(), HealthStatus::Unknown);
+    }
+
+    #[test]
+    fn access_posture_to_health() {
+        let locked = parse_access("ACCESS\thost=h\troot_ssh=off\tpassword_auth=off\tallow_users=ops\tssh_pf_restricted=yes\tops_user=present\tops_sudo=ok");
+        assert_eq!(locked.health(), HealthStatus::Up);
+        let open = parse_access("ACCESS\thost=h\troot_ssh=on\tpassword_auth=off\tallow_users=\tssh_pf_restricted=yes\tops_user=present\tops_sudo=ok");
+        assert_eq!(open.health(), HealthStatus::Down);
+        let degraded = parse_access("ACCESS\thost=h\troot_ssh=off\tpassword_auth=off\tallow_users=ops\tssh_pf_restricted=yes\tops_user=absent\tops_sudo=ok");
+        assert_eq!(degraded.health(), HealthStatus::Degraded);
+        assert_eq!(parse_access("").health(), HealthStatus::Unknown);
+    }
+
+    #[test]
+    fn audit_posture_to_health() {
+        let up = parse_audit("AUDIT\thost=h\tauditd=on\tblacklistd=on\tauth_failures_24h=3\twheel_users=2\tlisteners=5\tlast_scan=1700");
+        assert_eq!(up.auth_failures_24h, 3);
+        assert_eq!(up.health(), HealthStatus::Up);
+        let deg = parse_audit("AUDIT\thost=h\tauditd=on\tblacklistd=off\tauth_failures_24h=0\twheel_users=2\tlisteners=5\tlast_scan=1700");
+        assert_eq!(deg.health(), HealthStatus::Degraded);
+        let down = parse_audit("AUDIT\thost=h\tauditd=off\tblacklistd=on\tauth_failures_24h=0\twheel_users=2\tlisteners=5\tlast_scan=1700");
+        assert_eq!(down.health(), HealthStatus::Down);
+        assert_eq!(parse_audit("").health(), HealthStatus::Unknown);
+    }
+
+    #[test]
+    fn drift_residency_compliance_to_health() {
+        assert_eq!(
+            parse_drift("DRIFT\thost=h\tcommit=abc123\tdirty=0\tahead=0\tbehind=0\tverdict=ok").health(),
+            HealthStatus::Up
+        );
+        assert_eq!(
+            parse_drift("DRIFT\thost=h\tcommit=abc123\tdirty=2\tahead=1\tbehind=0\tverdict=drift").health(),
+            HealthStatus::Degraded
+        );
+        // residency violation is critical
+        assert_eq!(
+            parse_residency("RESIDENCY\thost=h\tgroup=eu\tpeers=4\tcross_group_peers=1\tverdict=violation").health(),
+            HealthStatus::Down
+        );
+        assert_eq!(
+            parse_residency("RESIDENCY\thost=h\tgroup=eu\tpeers=4\tcross_group_peers=0\tverdict=ok").health(),
+            HealthStatus::Up
+        );
+        let clean = parse_compliance("COMPLIANCE\thost=h\tprofile=cis-freebsd\tpass=40\tfail=0\twarn=0\tscore=100");
+        assert_eq!(clean.health(), HealthStatus::Up);
+        let failing = parse_compliance("COMPLIANCE\thost=h\tprofile=cis-freebsd\tpass=30\tfail=5\twarn=5\tscore=75");
+        assert_eq!(failing.fail, 5);
+        assert_eq!(failing.health(), HealthStatus::Degraded);
+        assert_eq!(parse_compliance("").health(), HealthStatus::Unknown);
     }
 }

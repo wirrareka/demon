@@ -24,7 +24,9 @@ pub use action::{ActionClass, ActionSpec, Capability};
 pub use audit::{AuditChain, AuditRecord, GENESIS_HASH};
 pub use authorize::{authorize, AuthzError, Principal, Role};
 pub use contracts::{
-    parse_backup, parse_fim, parse_line, parse_os, BackupStatus, FimStatus, OsFamily, OsStatus,
+    parse_access, parse_audit, parse_backup, parse_compliance, parse_drift, parse_fim, parse_line,
+    parse_os, parse_residency, AccessStatus, AuditStatus, BackupStatus, ComplianceStatus,
+    DriftStatus, FimStatus, OsFamily, OsStatus, ResidencyStatus,
 };
 pub use health::HealthStatus;
 pub use inventory::{Fleet, HealthSnapshot, Host, Service, TargetKind, Tenant};

@@ -4,10 +4,16 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-description = "Thin TUI client over the demon API (refactored from proximiio-tui). Phase 1."
+description = "Thin client over the demon API (refactored from proximiio-tui). Phase 1: proves the API."
+
+[[bin]]
+name = "demon-tui"
+path = "src/main.rs"
 
 [dependencies]
 demon-sdk = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
 
 [lints]
 workspace = true

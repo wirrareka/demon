@@ -29,11 +29,30 @@ pub enum CheckArea {
     Backup,
     /// File integrity (`check-fim.sh`).
     Fim,
+    /// SSH access posture (`check-access.sh`).
+    Access,
+    /// Audit/security posture (`check-audit.sh`).
+    Audit,
+    /// Config/git drift (`check-drift.sh`).
+    Drift,
+    /// WireGuard residency posture (`check-residency.sh`).
+    Residency,
+    /// CIS compliance (`check-compliance.sh`).
+    Compliance,
 }
 
 impl CheckArea {
     /// All areas the Phase 1 poller collects.
-    pub const ALL: [CheckArea; 3] = [CheckArea::Os, CheckArea::Backup, CheckArea::Fim];
+    pub const ALL: [CheckArea; 8] = [
+        CheckArea::Os,
+        CheckArea::Backup,
+        CheckArea::Fim,
+        CheckArea::Access,
+        CheckArea::Audit,
+        CheckArea::Drift,
+        CheckArea::Residency,
+        CheckArea::Compliance,
+    ];
 
     /// Canonical area name (matches the `area` column / contract tag, lowercased).
     #[must_use]
@@ -42,6 +61,11 @@ impl CheckArea {
             CheckArea::Os => "os",
             CheckArea::Backup => "backup",
             CheckArea::Fim => "fim",
+            CheckArea::Access => "access",
+            CheckArea::Audit => "audit",
+            CheckArea::Drift => "drift",
+            CheckArea::Residency => "residency",
+            CheckArea::Compliance => "compliance",
         }
     }
 
@@ -52,6 +76,11 @@ impl CheckArea {
             CheckArea::Os => "check-os.sh",
             CheckArea::Backup => "check-backup.sh",
             CheckArea::Fim => "check-fim.sh",
+            CheckArea::Access => "check-access.sh",
+            CheckArea::Audit => "check-audit.sh",
+            CheckArea::Drift => "check-drift.sh",
+            CheckArea::Residency => "check-residency.sh",
+            CheckArea::Compliance => "check-compliance.sh",
         }
     }
 
@@ -69,6 +98,26 @@ impl CheckArea {
             }
             CheckArea::Fim => {
                 let s = demon_core::parse_fim(output);
+                (s.health(), to_json(&s))
+            }
+            CheckArea::Access => {
+                let s = demon_core::parse_access(output);
+                (s.health(), to_json(&s))
+            }
+            CheckArea::Audit => {
+                let s = demon_core::parse_audit(output);
+                (s.health(), to_json(&s))
+            }
+            CheckArea::Drift => {
+                let s = demon_core::parse_drift(output);
+                (s.health(), to_json(&s))
+            }
+            CheckArea::Residency => {
+                let s = demon_core::parse_residency(output);
+                (s.health(), to_json(&s))
+            }
+            CheckArea::Compliance => {
+                let s = demon_core::parse_compliance(output);
                 (s.health(), to_json(&s))
             }
         }
