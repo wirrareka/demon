@@ -1,0 +1,224 @@
+/* Kalista v0.5 design tokens.
+ *
+ * CSS variable mirror of `docs/design/v0.5/project/styles.css`. Switched by
+ *   <html data-theme="dark|light" data-accent="mono|cobalt|solder|pingora|iris" data-density="compact|extra">
+ * so the same components render differently per operator preference without
+ * a re-render. Default is `dark` / `mono` / `compact` — operators live here.
+ *
+ * Naming mirrors `docs/design/v0.5/project/tokens.md`. Surface ladder uses
+ * 8 semantic levels (bg, surface, surface-2, surface-3, border, border-2,
+ * fg, fg-2, muted, muted-2) plus 4 status hues. Accent is a single var that
+ * accent-themed blocks swap.
+ *
+ * This file is additive to `index.css` (which still hosts the shadcn
+ * --background/--foreground HSL vars). The shadcn vars get rewired in
+ * tailwind.config.ts to point at v0.5 vars — see the rewire block there.
+ */
+
+/* ── Light · "Paper" ───────────────────────────────────────────────────── */
+:root,
+[data-theme="light"] {
+  --bg:          oklch(0.995 0.003 85);
+  --surface:     oklch(0.982 0.004 85);
+  --surface-2:   oklch(0.962 0.005 85);
+  --surface-3:   oklch(0.940 0.006 85);
+  /* v0.4.82 polish: dedicated row-hover step, one ladder rung warmer than
+   * surface-2. Replaces the surface-3/70 alpha hack used by tables, sidebar
+   * nav rows, draft rows, and palette items. Tuned by eye in dev. */
+  --row-hover:   oklch(0.952 0.005 85);
+  --border:      oklch(0.890 0.007 85);
+  --border-2:    oklch(0.855 0.008 85);
+  /* DS1 fix: styles.css had 0.185 which gives 18.37:1 on actual bg — below
+   * the tokens.md cheatsheet guarantee of 19.8:1. Corrected to 0.131 →
+   * 19.81:1. The spec hex was #09090b (lum 0.00278); OKLCH 0.131 matches
+   * that luminance at hue 250. */
+  --fg:          oklch(0.131 0.012 250);
+  --fg-2:        oklch(0.320 0.012 250);
+  /* v0.4.90: bumped from 0.500 → 0.440 for WCAG AA on 12.5px `text-sm`
+   * secondary labels (≈7.65:1 on --bg). See ui-ux-backlog P1-6. */
+  --muted:       oklch(0.440 0.012 250);
+  /* DS1 fix: was 0.660 (3.06:1) — below the 3.9:1 AA caption minimum in the
+   * tokens.md cheatsheet. Corrected to 0.599 → 3.90:1. Caption-only; never
+   * use for communicative text (use --muted instead). */
+  --muted-2:     oklch(0.599 0.010 250);
+  /* Breadcrumb chevron — was inline `fg-2/80`; promoted so intent is named. */
+  --breadcrumb-sep: oklch(0.550 0.010 90);
+
+  /* Mono accent is just fg/bg — chromatic accents come from [data-accent]. */
+  --accent:      oklch(0.185 0.012 250);
+  --accent-fg:   oklch(0.995 0.003 85);
+  --accent-soft: oklch(0.940 0.006 85);
+  --ring:        oklch(0.185 0.012 250);
+
+  --success:        oklch(0.50 0.13 158);
+  --success-bg:     oklch(0.965 0.030 158);
+  --success-border: oklch(0.870 0.060 158);
+  /* Foreground for text/icons sitting on the matching `*-bg`. The bare
+   * `--success` etc. were tuned for dark-mode-on-dark-surface chips, so they
+   * read too light on a light `*-bg`. These hit the contrast cheatsheet
+   * targets in tokens.md (success on success-bg ≥ 6.8:1 light). */
+  --success-fg:     oklch(0.42 0.12 158);
+  --warning:        oklch(0.62 0.13 70);
+  --warning-bg:     oklch(0.970 0.035 75);
+  --warning-border: oklch(0.870 0.080 75);
+  --warning-fg:     oklch(0.46 0.13 70);
+  --danger:         oklch(0.56 0.18 25);
+  --danger-bg:      oklch(0.965 0.025 25);
+  --danger-border:  oklch(0.870 0.060 25);
+  --danger-fg:      oklch(0.46 0.18 25);
+  --info:           oklch(0.52 0.16 245);
+  --info-bg:        oklch(0.965 0.025 245);
+  --info-border:    oklch(0.860 0.060 245);
+  --info-fg:        oklch(0.44 0.17 245);
+
+  --diff-add-bg:     oklch(0.965 0.035 158);
+  --diff-add-fg:     oklch(0.38 0.11 158);
+  --diff-add-gutter: oklch(0.58 0.15 158);
+  --diff-rem-bg:     oklch(0.965 0.030 25);
+  --diff-rem-fg:     oklch(0.44 0.16 25);
+  --diff-rem-gutter: oklch(0.62 0.19 25);
+  --diff-mod-bg:     oklch(0.965 0.040 75);
+  --diff-mod-fg:     oklch(0.46 0.13 70);
+  --diff-mod-gutter: oklch(0.66 0.16 75);
+
+  --shadow-1:   0 0 0 1px rgba(20, 18, 26, 0.045), 0 1px 2px rgba(20, 18, 26, 0.06);
+  --shadow-2:   0 0 0 1px rgba(20, 18, 26, 0.05), 0 8px 24px -8px rgba(20, 18, 26, 0.16), 0 2px 6px -2px rgba(20, 18, 26, 0.06);
+  --shadow-pop: 0 0 0 1px rgba(20, 18, 26, 0.06), 0 24px 48px -16px rgba(20, 18, 26, 0.28), 0 4px 12px -2px rgba(20, 18, 26, 0.10);
+}
+
+/* ── Dark · "Ink" (default) ────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:          oklch(0.165 0.008 250);
+  --surface:     oklch(0.198 0.008 250);
+  --surface-2:   oklch(0.228 0.009 250);
+  --surface-3:   oklch(0.265 0.011 250);
+  /* v0.4.82 polish: dedicated row-hover surface, sits between surface-2 and
+   * surface-3. Cleaner than `surface-3/70` alpha overlay. */
+  --row-hover:   oklch(0.248 0.010 250);
+  --border:      oklch(0.290 0.014 250);
+  --border-2:    oklch(0.355 0.015 250);
+  --fg:          oklch(0.975 0.003 250);
+  --fg-2:        oklch(0.860 0.006 250);
+  --muted:       oklch(0.640 0.012 250);
+  /* DS1 fix: was 0.480 (2.95:1 on actual dark bg) — below the 3.6:1 AA
+   * caption minimum. Corrected to 0.527 → 3.61:1. Captions/placeholders only. */
+  --muted-2:     oklch(0.527 0.012 250);
+  --breadcrumb-sep: oklch(0.620 0.010 250);
+
+  --accent:      oklch(0.975 0.003 250);
+  --accent-fg:   oklch(0.165 0.008 250);
+  --accent-soft: oklch(0.265 0.011 250);
+  --ring:        oklch(0.975 0.003 250);
+
+  --success:        oklch(0.80 0.14 158);
+  --success-bg:     oklch(0.235 0.040 158);
+  --success-border: oklch(0.345 0.070 158);
+  /* On dark surfaces the existing `*` colour already lands on `*-bg` at the
+   * cheatsheet ratios — `*-fg` is aliased here so the same Tailwind utility
+   * works across themes. */
+  --success-fg:     oklch(0.85 0.14 158);
+  --warning:        oklch(0.85 0.13 78);
+  --warning-bg:     oklch(0.240 0.040 75);
+  --warning-border: oklch(0.355 0.080 75);
+  --warning-fg:     oklch(0.88 0.13 78);
+  --danger:         oklch(0.75 0.17 25);
+  --danger-bg:      oklch(0.235 0.050 25);
+  --danger-border:  oklch(0.355 0.110 25);
+  --danger-fg:      oklch(0.82 0.16 25);
+  --info:           oklch(0.78 0.13 235);
+  --info-bg:        oklch(0.235 0.045 245);
+  --info-border:    oklch(0.355 0.090 245);
+  --info-fg:        oklch(0.82 0.13 235);
+
+  --diff-add-bg:     oklch(0.225 0.045 158);
+  --diff-add-fg:     oklch(0.86 0.12 158);
+  --diff-add-gutter: oklch(0.72 0.16 158);
+  --diff-rem-bg:     oklch(0.225 0.055 25);
+  --diff-rem-fg:     oklch(0.82 0.14 25);
+  --diff-rem-gutter: oklch(0.68 0.18 25);
+  --diff-mod-bg:     oklch(0.230 0.045 75);
+  --diff-mod-fg:     oklch(0.85 0.13 78);
+  --diff-mod-gutter: oklch(0.74 0.15 75);
+
+  --shadow-1:   0 0 0 1px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2:   0 0 0 1px rgba(0, 0, 0, 0.55), 0 12px 32px -8px rgba(0, 0, 0, 0.65);
+  --shadow-pop: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 32px 64px -16px rgba(0, 0, 0, 0.75);
+}
+
+/* ── Accent hues ───────────────────────────────────────────────────────────
+   Same OKLCH lightness band across hues so swapping doesn't move the visual
+   weight of "primary". Mono is the default and falls through to fg/bg above. */
+[data-accent="mono"] { /* default — inherits from :root / [data-theme] */ }
+
+/* Cobalt — Klein-blue, not corporate. */
+[data-accent="cobalt"][data-theme="dark"]   { --accent: oklch(0.62 0.21 260); --accent-fg: oklch(0.99 0 0);   --ring: oklch(0.62 0.21 260); --accent-soft: oklch(0.30 0.10 260); }
+[data-accent="cobalt"][data-theme="light"]  { --accent: oklch(0.48 0.22 260); --accent-fg: oklch(0.99 0 0);   --ring: oklch(0.48 0.22 260); --accent-soft: oklch(0.94 0.02 260); }
+
+/* Solder — copper-amber. Electronics + heatsink. */
+[data-accent="solder"][data-theme="dark"]   { --accent: oklch(0.74 0.17 60);  --accent-fg: oklch(0.15 0.01 60);  --ring: oklch(0.74 0.17 60);  --accent-soft: oklch(0.30 0.08 60); }
+[data-accent="solder"][data-theme="light"]  { --accent: oklch(0.58 0.18 55);  --accent-fg: oklch(0.99 0 0);     --ring: oklch(0.58 0.18 55);  --accent-soft: oklch(0.94 0.03 55); }
+
+/* Pingora — moss/teal, the engine. */
+[data-accent="pingora"][data-theme="dark"]  { --accent: oklch(0.74 0.13 175); --accent-fg: oklch(0.15 0.01 175); --ring: oklch(0.74 0.13 175); --accent-soft: oklch(0.30 0.07 175); }
+[data-accent="pingora"][data-theme="light"] { --accent: oklch(0.50 0.13 175); --accent-fg: oklch(0.99 0 0);     --ring: oklch(0.50 0.13 175); --accent-soft: oklch(0.94 0.025 175); }
+
+/* Iris — violet, not lavender. */
+[data-accent="iris"][data-theme="dark"]     { --accent: oklch(0.70 0.19 295); --accent-fg: oklch(0.15 0.01 295); --ring: oklch(0.70 0.19 295); --accent-soft: oklch(0.30 0.10 295); }
+[data-accent="iris"][data-theme="light"]    { --accent: oklch(0.52 0.20 295); --accent-fg: oklch(0.99 0 0);     --ring: oklch(0.52 0.20 295); --accent-soft: oklch(0.94 0.03 295); }
+
+/* ── Density ──────────────────────────────────────────────────────────────
+ * `--row-h` is the body row height. `--row-h-header` is the table-header /
+ * column-label row height (one step shorter — operators want the data, not
+ * the chrome). Added in v0.4.82 polish so the v0.5 spec's "header 32 / body
+ * 36" rhythm is a single source of truth. */
+[data-density="compact"], :root { --row-h: 36px; --row-h-header: 32px; --cell-py: 8px; --gap-y: 10px; }
+[data-density="extra"]          { --row-h: 30px; --row-h-header: 28px; --cell-py: 6px; --gap-y: 8px;  }
+
+/* ── Radii + fonts ─────────────────────────────────────────────────────── */
+:root {
+  --radius-sm:      4px;
+  --radius-md:      6px;
+  --radius-md-plus: 7px;
+  --radius-lg:      8px;
+  --radius-xl:      10px;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Global type baseline — tabular-nums + Inter alt forms (cv11 = single-storey a,
+ * ss01 = open digits, ss03 = open four). This makes RPS / latency columns line
+ * up across every surface without per-cell .tnum opt-in. */
+html {
+  font-family: var(--font-sans);
+  font-feature-settings: 'tnum', 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Cmd-K palette motion ──────────────────────────────────────────────
+   v0.5 spec (motion table in redesign-rationale.md): the palette is a
+   destination, not a popover — 160ms cubic-bezier(.2,.7,.3,1) on enter
+   so it "lands". Scrim fades a little quicker so the dialog isn't
+   sliding into a dark hole. JS toggles these classes based on
+   prefers-reduced-motion — no class, no animation. */
+@keyframes cmdk-pop-in {
+  from { transform: translateY(-4px) scale(0.98); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes cmdk-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.cmdk-pop-in  { animation: cmdk-pop-in 160ms cubic-bezier(.2,.7,.3,1); }
+.cmdk-fade-in { animation: cmdk-fade-in 120ms cubic-bezier(.2,.7,.3,1); }
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
