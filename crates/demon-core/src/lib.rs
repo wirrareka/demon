@@ -23,7 +23,9 @@ pub mod residency;
 pub use action::{ActionClass, ActionSpec, Capability};
 pub use audit::{AuditChain, AuditRecord, GENESIS_HASH};
 pub use authorize::{authorize, AuthzError, Principal, Role};
-pub use contracts::{parse_line, parse_os, OsFamily, OsStatus};
+pub use contracts::{
+    parse_backup, parse_fim, parse_line, parse_os, BackupStatus, FimStatus, OsFamily, OsStatus,
+};
 pub use health::HealthStatus;
 pub use inventory::{Fleet, HealthSnapshot, Host, Service, TargetKind, Tenant};
 pub use residency::{Eu, Region, Residency, Uae};

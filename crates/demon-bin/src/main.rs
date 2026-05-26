@@ -31,9 +31,21 @@ async fn run<R: Residency>(cfg: Config) -> anyhow::Result<()> {
         .await
         .with_context(|| format!("opening store at {}", cfg.db_path.display()))?;
 
+    // Live health feed: poll worker publishes, the WS stream subscribes.
+    let (events, _rx) = tokio::sync::broadcast::channel(demon_workers::EVENT_CHANNEL_CAPACITY);
+    let transport = demon_collect::SshTransport::new(cfg.ssh_user.clone());
+    tokio::spawn(demon_workers::run(
+        store.clone(),
+        transport,
+        events.clone(),
+        cfg.poll_interval,
+    ));
+    tracing::info!(poll_secs = cfg.poll_interval.as_secs(), "health poller started");
+
     let state = AppState {
         version: env!("CARGO_PKG_VERSION"),
         store,
+        events,
     };
     let app = router(state);
 

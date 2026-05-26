@@ -19,8 +19,8 @@ demon-collect = { path = "crates/demon-collect" }
 demon-workers = { path = "crates/demon-workers" }
 demon-sdk = { path = "crates/demon-sdk" }
 # external
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "time", "process"] }
-axum = "0.8"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "time", "process", "sync"] }
+axum = { version = "0.8", features = ["ws"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "macros"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

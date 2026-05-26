@@ -5,6 +5,7 @@
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use anyhow::Context;
 use demon_core::Region;
@@ -19,6 +20,10 @@ pub struct Config {
     pub bind: SocketAddr,
     /// SQLite database path (`DEMON_DB_PATH`, default `demon-<region>.db`).
     pub db_path: PathBuf,
+    /// SSH login user for collectors (`DEMON_SSH_USER`, default `ops`).
+    pub ssh_user: String,
+    /// Health poll interval (`DEMON_POLL_SECS`, default `60`).
+    pub poll_interval: Duration,
 }
 
 impl Config {
@@ -38,10 +43,18 @@ impl Config {
         let db_path = std::env::var("DEMON_DB_PATH")
             .unwrap_or_else(|_| format!("demon-{region}.db"))
             .into();
+        let ssh_user = std::env::var("DEMON_SSH_USER").unwrap_or_else(|_| "ops".to_owned());
+        let poll_secs: u64 = std::env::var("DEMON_POLL_SECS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(60);
+        let poll_interval = Duration::from_secs(poll_secs.max(1));
         Ok(Self {
             region,
             bind,
             db_path,
+            ssh_user,
+            poll_interval,
         })
     }
 }

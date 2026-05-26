@@ -8,6 +8,12 @@ description = "Supervised tokio pollers / schedulers / analyzer / reconciler (Ph
 
 [dependencies]
 demon-core = { workspace = true }
+demon-store = { workspace = true }
+demon-collect = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

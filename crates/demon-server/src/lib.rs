@@ -8,23 +8,27 @@
 //! address only.
 #![forbid(unsafe_code)]
 
+use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
+use tokio::sync::broadcast;
 
-use demon_core::Residency;
+use demon_core::{HealthSnapshot, Residency};
 use demon_store::{Store, StoreError};
 
 /// Shared, cheaply-cloneable server state, scoped to one residency group.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AppState<R: Residency> {
     /// Build version (`CARGO_PKG_VERSION` of the daemon).
     pub version: &'static str,
     /// The residency-scoped store.
     pub store: Store<R>,
+    /// Live health-snapshot feed (fanned out by the poll worker).
+    pub events: broadcast::Sender<HealthSnapshot>,
 }
 
 /// Build the Phase 1 router for residency group `R`.
@@ -38,7 +42,35 @@ pub fn router<R: Residency>(state: AppState<R>) -> Router {
         .route("/api/v1/hosts/{id}/health", get(host_health::<R>))
         .route("/api/v1/services", get(services::<R>))
         .route("/api/v1/tenants", get(tenants::<R>))
+        .route("/api/v1/stream", get(stream::<R>))
         .with_state(state)
+}
+
+// ---- WebSocket live-state stream -------------------------------------------
+
+async fn stream<R: Residency>(State(s): State<AppState<R>>, ws: WebSocketUpgrade) -> Response {
+    let rx = s.events.subscribe();
+    ws.on_upgrade(move |socket| pump_events(socket, rx))
+}
+
+/// Forward broadcast health snapshots to one WebSocket client until it disconnects.
+async fn pump_events(mut socket: WebSocket, mut rx: broadcast::Receiver<HealthSnapshot>) {
+    loop {
+        match rx.recv().await {
+            Ok(snapshot) => {
+                let Ok(text) = serde_json::to_string(&snapshot) else {
+                    continue;
+                };
+                if socket.send(Message::Text(text.into())).await.is_err() {
+                    break; // client gone
+                }
+            }
+            Err(broadcast::error::RecvError::Lagged(skipped)) => {
+                tracing::warn!(skipped, "ws subscriber lagged");
+            }
+            Err(broadcast::error::RecvError::Closed) => break,
+        }
+    }
 }
 
 // ---- response envelopes (HATEOAS-lite) -------------------------------------
@@ -196,9 +228,11 @@ mod tests {
     #[tokio::test]
     async fn router_builds_with_store() {
         let store = Store::<Eu>::open_in_memory().await.unwrap();
+        let (events, _rx) = broadcast::channel(16);
         let _ = router(AppState {
             version: "0.0.0",
             store,
+            events,
         });
     }
 }
