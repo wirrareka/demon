@@ -78,6 +78,7 @@ async fn run<R: Residency>(cfg: Config, seed: bool) -> anyhow::Result<()> {
         jobs: demon_server::JobStore::new(),
         runbooks: demon_server::RunbookStore::new(),
         transport,
+        webauthn: build_webauthn(),
     };
     let app = router(state);
 
@@ -201,6 +202,20 @@ async fn seed_demo<R: Residency>(store: &Store<R>) -> anyhow::Result<()> {
         demo.len()
     );
     Ok(())
+}
+
+/// Build the WebAuthn relying party from `DEMON_WEBAUTHN_RP_ID` + `_ORIGIN`
+/// (e.g. `localhost` + `http://localhost:5179` in dev). `None` when unset.
+fn build_webauthn() -> Option<std::sync::Arc<demon_server::webauthn::WebauthnCtx>> {
+    let rp_id = std::env::var("DEMON_WEBAUTHN_RP_ID").ok()?;
+    let origin = std::env::var("DEMON_WEBAUTHN_ORIGIN").ok()?;
+    match demon_server::webauthn::WebauthnCtx::new(&rp_id, &origin) {
+        Ok(ctx) => Some(std::sync::Arc::new(ctx)),
+        Err(e) => {
+            tracing::error!(error = %e, "WebAuthn config invalid — step-up disabled");
+            None
+        }
+    }
 }
 
 /// Initialise structured logging (`RUST_LOG`, default `info`).

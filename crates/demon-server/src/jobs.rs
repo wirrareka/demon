@@ -17,8 +17,8 @@ use serde::{Deserialize, Serialize};
 
 use demon_clients::random_state;
 use demon_core::{
-    authorize, ActionSpec, Actor, AuditEvent, DualControl, FactorPolicy, GuardedAction, JobState,
-    Outcome, Plan, Principal, Residency, Target,
+    authorize, ActionSpec, Actor, AuditEvent, DualControl, FactorLevel, FactorPolicy,
+    GuardedAction, JobState, Outcome, Plan, Principal, Residency, Target,
 };
 use demon_workers::exec::{execute, SshMutator};
 
@@ -33,6 +33,8 @@ pub(crate) struct Job {
     pub(crate) state: JobState,
     dual: Option<DualControl>,
     report: Option<String>,
+    /// Step-up factor presented for *this* job (touch-per-op), if any.
+    stepped_up: Option<FactorLevel>,
 }
 
 /// In-memory job store (poison-safe).
@@ -70,6 +72,18 @@ impl JobStore {
             .values()
             .cloned()
             .collect()
+    }
+
+    /// Record a per-job step-up factor (set by the WebAuthn assertion). Returns whether
+    /// the job exists.
+    pub(crate) fn mark_stepped_up(&self, id: &str, level: FactorLevel) -> bool {
+        let mut g = self.inner.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some(job) = g.get_mut(id) {
+            job.stepped_up = Some(level);
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -190,6 +204,7 @@ pub(crate) fn plan_job<R: Residency>(
         state,
         dual,
         report: None,
+        stepped_up: None,
     };
     s.jobs.put(job.clone());
     Ok(job)
@@ -286,16 +301,19 @@ pub(crate) async fn apply<R: Residency>(
     if job.state != JobState::Confirmed {
         return err(StatusCode::CONFLICT, "job must be confirmed before apply");
     }
-    // Step-up: destructive/secret/CA classes need a fresh strong factor.
+    // Step-up: destructive/secret/CA classes need a fresh per-op factor. A WebAuthn
+    // assertion on this job (touch-per-op) takes precedence over the session factor.
     let policy = FactorPolicy::default();
-    if !policy.satisfied(job.plan.action.class(), ctx.factor) {
+    let factor = job.stepped_up.unwrap_or(ctx.factor);
+    if !policy.satisfied(job.plan.action.class(), factor) {
         return err(
             StatusCode::FORBIDDEN,
             format!(
-                "step-up required for a {:?} action (have {:?}, need {:?})",
+                "step-up required for a {:?} action (have {:?}, need {:?}) — POST /api/v1/jobs/{}/stepup/start",
                 job.plan.action.class(),
-                ctx.factor,
-                policy.required(job.plan.action.class())
+                factor,
+                policy.required(job.plan.action.class()),
+                job.id,
             ),
         );
     }

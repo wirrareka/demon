@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { api, type Job } from "../lib/api";
+import { api, ApiError, type Job } from "../lib/api";
+import { registerPasskey, stepUp } from "../lib/webauthn";
 import { stateClass } from "../lib/jobstate";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -38,8 +39,48 @@ export function JobsPage() {
     }
   };
 
+  // Apply with automatic touch-per-op step-up: if the gate returns 403, run a fresh
+  // WebAuthn assertion scoped to this job, then retry.
+  const applyJob = async (id: string) => {
+    setBusy(id);
+    setError(null);
+    try {
+      await api.jobs.apply(id);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 403) {
+        try {
+          await stepUp(id);
+          await api.jobs.apply(id);
+        } catch (e2) {
+          setError(e2 instanceof Error ? e2.message : String(e2));
+        }
+      } else {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    } finally {
+      setBusy(null);
+      void reload();
+    }
+  };
+
+  const register = async () => {
+    setError(null);
+    try {
+      await registerPasskey();
+      setError("passkey registered ✓");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted">
+          Destructive / secret / CA actions require a touch-per-op WebAuthn step-up on Apply.
+        </p>
+        <Button onClick={register}>Register passkey</Button>
+      </div>
       {error && (
         <Card className="border-danger-border bg-danger-bg px-4 py-2 text-sm text-danger-fg">
           {error}
@@ -89,7 +130,7 @@ export function JobsPage() {
                       <Button
                         disabled={!canApply || busy === j.id}
                         className={cn(canApply && "border-danger-border text-danger-fg")}
-                        onClick={() => act(() => api.jobs.apply(j.id), j.id)}
+                        onClick={() => applyJob(j.id)}
                       >
                         Apply
                       </Button>

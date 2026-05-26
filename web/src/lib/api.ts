@@ -158,6 +158,14 @@ export const api = {
       getJson<ListResponse<AuditRecord>>(`/api/v1/audit?limit=${limit}`).then((r) => r.data),
     verify: () => getJson<{ intact: boolean }>("/api/v1/audit/verify"),
   },
+  webauthn: {
+    registerStart: () => postJson<{ publicKey: unknown }>("/api/v1/webauthn/register/start"),
+    registerFinish: (cred: unknown) => postJson<unknown>("/api/v1/webauthn/register/finish", cred),
+    stepupStart: (jobId: string) =>
+      postJson<{ publicKey: unknown }>(`/api/v1/jobs/${jobId}/stepup/start`),
+    stepupFinish: (jobId: string, cred: unknown) =>
+      postJson<unknown>(`/api/v1/jobs/${jobId}/stepup/finish`, cred),
+  },
 };
 
 /** Subscribe to the live health-snapshot WebSocket. Returns the socket. */

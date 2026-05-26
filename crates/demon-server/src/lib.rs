@@ -13,6 +13,7 @@ mod jobs;
 mod runbooks;
 pub mod session;
 pub mod tls;
+pub mod webauthn;
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path, Query, State};
@@ -77,6 +78,9 @@ pub struct AppState<R: Residency> {
     pub runbooks: RunbookStore,
     /// SSH transport used to execute mutations + verify (shared with the poller).
     pub transport: SshTransport,
+    /// WebAuthn relying party for step-up (`None` ⇒ step-up unavailable; destructive/
+    /// secret/CA actions then cannot meet the factor gate unless dev-bypassed).
+    pub webauthn: Option<std::sync::Arc<webauthn::WebauthnCtx>>,
 }
 
 /// Build the router for residency group `R`. Liveness (`/health`, `/version`) and the
@@ -101,6 +105,10 @@ pub fn router<R: Residency>(state: AppState<R>) -> Router {
         .route("/api/v1/runbooks", get(runbooks::catalog::<R>))
         .route("/api/v1/runbooks/{id}/runs", post(runbooks::start::<R>))
         .route("/api/v1/runbooks/runs/{run_id}", get(runbooks::get_run::<R>))
+        .route("/api/v1/webauthn/register/start", post(webauthn::register_start::<R>))
+        .route("/api/v1/webauthn/register/finish", post(webauthn::register_finish::<R>))
+        .route("/api/v1/jobs/{id}/stepup/start", post(webauthn::stepup_start::<R>))
+        .route("/api/v1/jobs/{id}/stepup/finish", post(webauthn::stepup_finish::<R>))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth::<R>,
@@ -340,6 +348,7 @@ mod tests {
             jobs: JobStore::new(),
             runbooks: RunbookStore::new(),
             transport: SshTransport::new("ops"),
+            webauthn: None,
         });
     }
 }
