@@ -24,7 +24,7 @@ use axum::{middleware, Extension, Json, Router};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
-use demon_clients::{IdentityClient, OpenSearchAudit};
+use demon_clients::{IdentityClient, OpenSearchAudit, PrometheusClient};
 use demon_collect::SshTransport;
 use demon_core::{available_actions, GuardedAction, HealthSnapshot, Residency};
 use demon_store::{Store, StoreError};
@@ -81,6 +81,8 @@ pub struct AppState<R: Residency> {
     /// WebAuthn relying party for step-up (`None` ⇒ step-up unavailable; destructive/
     /// secret/CA actions then cannot meet the factor gate unless dev-bypassed).
     pub webauthn: Option<std::sync::Arc<webauthn::WebauthnCtx>>,
+    /// Group-local Prometheus client for the bottleneck load feed (`None` ⇒ disabled).
+    pub metrics: Option<PrometheusClient>,
 }
 
 /// Build the router for residency group `R`. Liveness (`/health`, `/version`) and the
@@ -92,6 +94,7 @@ pub fn router<R: Residency>(state: AppState<R>) -> Router {
         .route("/api/v1/hosts", get(hosts::<R>))
         .route("/api/v1/hosts/{id}", get(host_detail::<R>))
         .route("/api/v1/hosts/{id}/health", get(host_health::<R>))
+        .route("/api/v1/hosts/{id}/load", get(host_load::<R>))
         .route("/api/v1/services", get(services::<R>))
         .route("/api/v1/tenants", get(tenants::<R>))
         .route("/api/v1/audit", get(audit_list::<R>))
@@ -300,6 +303,61 @@ async fn tenants<R: Residency>(
     Ok(Json(ListResponse::new(s.store.list_tenants().await?)))
 }
 
+#[derive(Serialize)]
+struct LoadReport {
+    load: demon_core::ServiceLoad,
+    findings: Vec<demon_core::Finding>,
+    confidence: Option<demon_core::Confidence>,
+}
+
+async fn host_load<R: Residency>(
+    State(s): State<AppState<R>>,
+    Path(id): Path<String>,
+) -> Response {
+    let Some(prom) = s.metrics.clone() else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(ErrorBody {
+                error: "metrics (Prometheus) not configured".into(),
+            }),
+        )
+            .into_response();
+    };
+    let host = match s.store.get_host(&id).await {
+        Ok(Some(h)) => h,
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(ErrorBody {
+                    error: format!("host {id} not found"),
+                }),
+            )
+                .into_response()
+        }
+        Err(e) => return AppError(e).into_response(),
+    };
+    let selector = format!("instance=~\"{}.*\"", host.fqdn);
+    match prom.host_load(&selector).await {
+        Ok(load) => {
+            let findings = demon_core::detect(&load);
+            let confidence = demon_core::bottleneck::overall_confidence(&findings);
+            Json(LoadReport {
+                load,
+                findings,
+                confidence,
+            })
+            .into_response()
+        }
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            Json(ErrorBody {
+                error: e.to_string(),
+            }),
+        )
+            .into_response(),
+    }
+}
+
 #[derive(Deserialize)]
 struct AuditQuery {
     limit: Option<i64>,
@@ -349,6 +407,7 @@ mod tests {
             runbooks: RunbookStore::new(),
             transport: SshTransport::new("ops"),
             webauthn: None,
+            metrics: None,
         });
     }
 }

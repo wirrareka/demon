@@ -7,9 +7,11 @@
 
 pub mod identity;
 pub mod opensearch;
+pub mod prometheus;
 
 pub use identity::{
     authorize_url, decode_claims, pkce, random_state, Discovery, IdentityClient, IdentityError,
     OidcConfig, Pkce, TokenResponse,
 };
 pub use opensearch::{index_for, AuditShipError, OpenSearchAudit};
+pub use prometheus::{PromError, PrometheusClient};

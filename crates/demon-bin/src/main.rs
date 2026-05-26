@@ -79,6 +79,9 @@ async fn run<R: Residency>(cfg: Config, seed: bool) -> anyhow::Result<()> {
         runbooks: demon_server::RunbookStore::new(),
         transport,
         webauthn: build_webauthn(),
+        metrics: std::env::var("DEMON_PROMETHEUS_URL")
+            .ok()
+            .map(demon_clients::PrometheusClient::new),
     };
     let app = router(state);
 
