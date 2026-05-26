@@ -1,0 +1,13 @@
+[package]
+name = "demon-tui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Thin TUI client over the demon API (refactored from proximiio-tui). Phase 1."
+
+[dependencies]
+demon-sdk = { workspace = true }
+
+[lints]
+workspace = true

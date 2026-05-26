@@ -1,0 +1,13 @@
+[package]
+name = "demon-collect"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "SSH-over-WireGuard transport + check-*.sh line-contract collectors (Phase 1)."
+
+[dependencies]
+demon-core = { workspace = true }
+
+[lints]
+workspace = true

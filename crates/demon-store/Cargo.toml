@@ -1,0 +1,19 @@
+[package]
+name = "demon-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "SQLite (WAL) persistence for proximiio.demon, parameterised by residency group."
+
+[dependencies]
+demon-core = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+
+[lints]
+workspace = true

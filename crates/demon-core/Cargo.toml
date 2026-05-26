@@ -1,0 +1,16 @@
+[package]
+name = "demon-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Pure domain core for proximiio.demon — no I/O. Residency invariant, capability authz, audit chain."
+
+[dependencies]
+serde = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

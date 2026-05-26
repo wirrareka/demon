@@ -1,0 +1,41 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+license = "proprietary"
+repository = "https://github.com/proximiio/proximiio-demon"
+rust-version = "1.90"
+
+[workspace.dependencies]
+# internal
+demon-core = { path = "crates/demon-core" }
+demon-store = { path = "crates/demon-store" }
+demon-server = { path = "crates/demon-server" }
+demon-clients = { path = "crates/demon-clients" }
+demon-collect = { path = "crates/demon-collect" }
+demon-workers = { path = "crates/demon-workers" }
+demon-sdk = { path = "crates/demon-sdk" }
+# external
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "time"] }
+axum = "0.8"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "migrate", "macros"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+sha2 = "0.10"
+hex = "0.4"
+thiserror = "2"
+anyhow = "1"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Product/proper nouns (OpenSearch, WireGuard, SQLite, proximiio.demon, ...) trip this.
+doc_markdown = "allow"
+
+[profile.release]
+strip = true
+lto = "thin"

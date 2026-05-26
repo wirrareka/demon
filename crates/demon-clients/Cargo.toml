@@ -1,0 +1,13 @@
+[package]
+name = "demon-clients"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Typed API clients for kalista / vulture / identity / vault (adapted from proximiio-tui)."
+
+[dependencies]
+demon-core = { workspace = true }
+
+[lints]
+workspace = true

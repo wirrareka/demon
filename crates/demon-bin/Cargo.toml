@@ -1,0 +1,24 @@
+[package]
+name = "demon-bin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "The proximiio.demon daemon binary."
+
+[[bin]]
+name = "demon"
+path = "src/main.rs"
+
+[dependencies]
+demon-core = { workspace = true }
+demon-store = { workspace = true }
+demon-server = { workspace = true }
+tokio = { workspace = true }
+axum = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+
+[lints]
+workspace = true
