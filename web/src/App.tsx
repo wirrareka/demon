@@ -3,6 +3,7 @@ import { AppShell, type Page } from "./components/AppShell";
 import { FleetOverview } from "./pages/FleetOverview";
 import { JobsPage } from "./pages/JobsPage";
 import { RunbooksPage } from "./pages/RunbooksPage";
+import { AuditPage } from "./pages/AuditPage";
 import { api, openStream, type Host, type HealthSnapshot } from "./lib/api";
 
 export function App() {
@@ -67,6 +68,7 @@ export function App() {
       )}
       {page === "jobs" && <JobsPage />}
       {page === "runbooks" && <RunbooksPage onStarted={() => undefined} />}
+      {page === "audit" && <AuditPage />}
     </AppShell>
   );
 }

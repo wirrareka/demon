@@ -89,6 +89,18 @@ export interface RunbookRun {
   steps: RunStep[];
 }
 
+export interface AuditRecord {
+  seq: number;
+  prev_hash: string;
+  hash: string;
+  actor: string;
+  action: string;
+  target: string;
+  dry_run: boolean;
+  redacted_payload: string;
+  ts: number;
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -140,6 +152,11 @@ export const api = {
       getJson<{ data: RunbookCatalogEntry[] }>("/api/v1/runbooks").then((r) => r.data),
     start: (id: string, target: string) =>
       postJson<RunbookRun>(`/api/v1/runbooks/${id}/runs`, { target }),
+  },
+  audit: {
+    list: (limit = 100) =>
+      getJson<ListResponse<AuditRecord>>(`/api/v1/audit?limit=${limit}`).then((r) => r.data),
+    verify: () => getJson<{ intact: boolean }>("/api/v1/audit/verify"),
   },
 };
 

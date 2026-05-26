@@ -90,6 +90,8 @@ pub fn router<R: Residency>(state: AppState<R>) -> Router {
         .route("/api/v1/hosts/{id}/health", get(host_health::<R>))
         .route("/api/v1/services", get(services::<R>))
         .route("/api/v1/tenants", get(tenants::<R>))
+        .route("/api/v1/audit", get(audit_list::<R>))
+        .route("/api/v1/audit/verify", get(audit_verify::<R>))
         .route("/api/v1/stream", get(stream::<R>))
         .route("/api/v1/jobs", get(jobs::list::<R>).post(jobs::create::<R>))
         .route("/api/v1/jobs/{id}", get(jobs::get::<R>))
@@ -288,6 +290,32 @@ async fn tenants<R: Residency>(
     State(s): State<AppState<R>>,
 ) -> Result<Json<ListResponse<demon_core::Tenant>>, AppError> {
     Ok(Json(ListResponse::new(s.store.list_tenants().await?)))
+}
+
+#[derive(Deserialize)]
+struct AuditQuery {
+    limit: Option<i64>,
+}
+
+async fn audit_list<R: Residency>(
+    State(s): State<AppState<R>>,
+    Query(q): Query<AuditQuery>,
+) -> Result<Json<ListResponse<demon_core::AuditRecord>>, AppError> {
+    let limit = q.limit.unwrap_or(100).clamp(1, 1000);
+    Ok(Json(ListResponse::new(s.store.list_audit(limit).await?)))
+}
+
+#[derive(Serialize)]
+struct AuditVerify {
+    intact: bool,
+}
+
+async fn audit_verify<R: Residency>(
+    State(s): State<AppState<R>>,
+) -> Result<Json<AuditVerify>, AppError> {
+    Ok(Json(AuditVerify {
+        intact: s.store.verify_audit().await?,
+    }))
 }
 
 #[cfg(test)]

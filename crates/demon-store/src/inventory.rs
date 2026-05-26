@@ -126,6 +126,35 @@ impl TryFrom<TenantRow> for Tenant {
 }
 
 #[derive(FromRow)]
+struct AuditRow {
+    seq: i64,
+    prev_hash: String,
+    hash: String,
+    actor: String,
+    action: String,
+    target: String,
+    dry_run: i64,
+    redacted_payload: String,
+    ts: i64,
+}
+
+impl AuditRow {
+    fn into_record(self) -> AuditRecord {
+        AuditRecord {
+            seq: u64::try_from(self.seq).unwrap_or(0),
+            prev_hash: self.prev_hash,
+            hash: self.hash,
+            actor: self.actor,
+            action: self.action,
+            target: self.target,
+            dry_run: self.dry_run != 0,
+            redacted_payload: self.redacted_payload,
+            ts: self.ts,
+        }
+    }
+}
+
+#[derive(FromRow)]
 struct HealthRow {
     target_id: String,
     target_kind: String,
@@ -345,6 +374,37 @@ impl<R: Residency> Store<R> {
         .execute(self.pool())
         .await?;
         Ok(rec)
+    }
+
+    /// List recent audit records, newest first (durable hash chain).
+    ///
+    /// # Errors
+    /// Database error.
+    pub async fn list_audit(&self, limit: i64) -> Result<Vec<AuditRecord>, StoreError> {
+        let rows: Vec<AuditRow> = sqlx::query_as(
+            "SELECT seq, prev_hash, hash, actor, action, target, dry_run, redacted_payload, ts
+             FROM audit ORDER BY seq DESC LIMIT ?1",
+        )
+        .bind(limit)
+        .fetch_all(self.pool())
+        .await?;
+        Ok(rows.into_iter().map(AuditRow::into_record).collect())
+    }
+
+    /// Verify the whole durable audit chain is intact (no tamper/reorder/deletion).
+    ///
+    /// # Errors
+    /// Database error. Returns `Ok(Err(seq))`-style via the inner result is avoided;
+    /// instead returns `Ok(true)` if intact, `Ok(false)` if broken.
+    pub async fn verify_audit(&self) -> Result<bool, StoreError> {
+        let rows: Vec<AuditRow> = sqlx::query_as(
+            "SELECT seq, prev_hash, hash, actor, action, target, dry_run, redacted_payload, ts
+             FROM audit ORDER BY seq ASC",
+        )
+        .fetch_all(self.pool())
+        .await?;
+        let chain = AuditChain::from_records(rows.into_iter().map(AuditRow::into_record).collect());
+        Ok(chain.verify().is_ok())
     }
 
     /// The latest health snapshot per area for a target (current health view).

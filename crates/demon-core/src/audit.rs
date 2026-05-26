@@ -77,6 +77,13 @@ impl AuditChain {
         Self::default()
     }
 
+    /// Reconstruct a chain from stored records (e.g. loaded from the durable store),
+    /// for verification. Records should be in ascending `seq` order.
+    #[must_use]
+    pub fn from_records(records: Vec<AuditRecord>) -> Self {
+        Self { records }
+    }
+
     /// The current head hash (genesis if empty).
     #[must_use]
     pub fn head(&self) -> &str {
