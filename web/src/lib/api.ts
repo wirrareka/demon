@@ -89,6 +89,26 @@ export interface RunbookRun {
   steps: RunStep[];
 }
 
+export interface ServiceLoad {
+  cpu_pct: number;
+  mem_pct: number;
+  disk_pct: number;
+  p99_latency_ms: number;
+  queue_depth: number;
+}
+
+export interface Finding {
+  signal: string;
+  confidence: string;
+  detail: string;
+}
+
+export interface LoadReport {
+  load: ServiceLoad;
+  findings: Finding[];
+  confidence: string | null;
+}
+
 export interface AuditRecord {
   seq: number;
   prev_hash: string;
@@ -136,8 +156,11 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
 export const api = {
   version: () => getJson<VersionInfo>("/version"),
   hosts: () => getJson<ListResponse<Host>>("/api/v1/hosts").then((r) => r.data),
+  host: (id: string) =>
+    getJson<{ data: Host; available_actions: string[] }>(`/api/v1/hosts/${id}`),
   hostHealth: (id: string) =>
     getJson<ListResponse<HealthSnapshot>>(`/api/v1/hosts/${id}/health`).then((r) => r.data),
+  hostLoad: (id: string) => getJson<LoadReport>(`/api/v1/hosts/${id}/load`),
   tenants: () => getJson<ListResponse<Tenant>>("/api/v1/tenants").then((r) => r.data),
   jobs: {
     list: () => getJson<{ data: Job[] }>("/api/v1/jobs").then((r) => r.data),

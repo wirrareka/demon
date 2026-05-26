@@ -5,6 +5,7 @@ import { JobsPage } from "./pages/JobsPage";
 import { RunbooksPage } from "./pages/RunbooksPage";
 import { AuditPage } from "./pages/AuditPage";
 import { TenantsPage } from "./pages/TenantsPage";
+import { HostDetailPage } from "./pages/HostDetailPage";
 import { api, openStream, type Host, type HealthSnapshot } from "./lib/api";
 
 export function App() {
@@ -15,6 +16,7 @@ export function App() {
   const [live, setLive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<Page>("fleet");
+  const [selectedHost, setSelectedHost] = useState<string | null>(null);
 
   // Version is public (works even when the API is gated); fleet needs auth/dev-mode.
   useEffect(() => {
@@ -63,9 +65,33 @@ export function App() {
   }, []);
 
   return (
-    <AppShell region={region} version={version} live={live} active={page} onNavigate={setPage}>
-      {page === "fleet" && (
-        <FleetOverview hosts={hosts} healthByHost={healthByHost} error={error} />
+    <AppShell
+      region={region}
+      version={version}
+      live={live}
+      active={page}
+      onNavigate={(p) => {
+        setSelectedHost(null);
+        setPage(p);
+      }}
+    >
+      {page === "fleet" && selectedHost && (
+        <HostDetailPage
+          hostId={selectedHost}
+          onBack={() => setSelectedHost(null)}
+          onPlanned={() => {
+            setSelectedHost(null);
+            setPage("jobs");
+          }}
+        />
+      )}
+      {page === "fleet" && !selectedHost && (
+        <FleetOverview
+          hosts={hosts}
+          healthByHost={healthByHost}
+          error={error}
+          onSelect={setSelectedHost}
+        />
       )}
       {page === "jobs" && <JobsPage />}
       {page === "runbooks" && <RunbooksPage onStarted={() => undefined} />}

@@ -24,10 +24,12 @@ export function FleetOverview({
   hosts,
   healthByHost,
   error,
+  onSelect,
 }: {
   hosts: Host[];
   healthByHost: HealthByHost;
   error: string | null;
+  onSelect: (id: string) => void;
 }) {
   if (error) {
     return (
@@ -91,8 +93,14 @@ export function FleetOverview({
               return (
                 <TR key={h.id}>
                   <TD>
-                    <div className="font-medium">{h.fqdn}</div>
-                    <div className="text-xs text-muted">{h.id}</div>
+                    <button
+                      type="button"
+                      onClick={() => onSelect(h.id)}
+                      className="text-left hover:text-accent"
+                    >
+                      <div className="font-medium">{h.fqdn}</div>
+                      <div className="text-xs text-muted">{h.id}</div>
+                    </button>
                   </TD>
                   <TD className="text-fg-2">{h.fleet}</TD>
                   <TD className="text-fg-2">{h.os}</TD>
