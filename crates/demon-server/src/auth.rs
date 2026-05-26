@@ -212,6 +212,9 @@ pub(crate) async fn require_auth<R: Residency>(
     req: Request,
     next: Next,
 ) -> Response {
+    if s.dev_no_auth {
+        return next.run(req).await;
+    }
     let authed = session_cookie(req.headers())
         .and_then(|id| s.sessions.get(&id, now_ms()))
         .is_some();

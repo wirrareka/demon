@@ -30,6 +30,8 @@ pub struct Config {
     /// mTLS material (set all of `DEMON_TLS_CERT`/`_KEY`/`_CLIENT_CA` to enable the
     /// mTLS listener). When `None`, the daemon serves plain HTTP (dev only).
     pub tls: Option<TlsPaths>,
+    /// **DEV ONLY**: bypass the auth gate (`DEMON_DEV_NO_AUTH=1`). Never in production.
+    pub dev_no_auth: bool,
 }
 
 /// Paths to the mTLS server cert, key, and the client-CA bundle (fleet Root CA).
@@ -86,6 +88,10 @@ impl Config {
             }),
             _ => None,
         };
+        let dev_no_auth = matches!(
+            std::env::var("DEMON_DEV_NO_AUTH").as_deref(),
+            Ok("1" | "true")
+        );
         Ok(Self {
             region,
             bind,
@@ -94,6 +100,7 @@ impl Config {
             poll_interval,
             oidc,
             tls,
+            dev_no_auth,
         })
     }
 }

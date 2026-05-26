@@ -20,17 +20,26 @@ async fn main() -> anyhow::Result<()> {
     let cfg = Config::from_env()?;
     tracing::info!(?cfg, "starting proximiio.demon");
 
+    let seed = std::env::args().nth(1).as_deref() == Some("seed-demo");
     match cfg.region {
-        Region::Eu => run::<Eu>(cfg).await,
-        Region::Uae => run::<Uae>(cfg).await,
+        Region::Eu => run::<Eu>(cfg, seed).await,
+        Region::Uae => run::<Uae>(cfg, seed).await,
     }
 }
 
-/// Run the daemon for a single residency group `R`.
-async fn run<R: Residency>(cfg: Config) -> anyhow::Result<()> {
+/// Run the daemon for a single residency group `R` (or seed demo data and exit).
+async fn run<R: Residency>(cfg: Config, seed: bool) -> anyhow::Result<()> {
     let store = Store::<R>::open(&cfg.db_path)
         .await
         .with_context(|| format!("opening store at {}", cfg.db_path.display()))?;
+
+    if seed {
+        return seed_demo(&store).await;
+    }
+
+    if cfg.dev_no_auth {
+        tracing::warn!("DEMON_DEV_NO_AUTH is set — AUTH GATE BYPASSED. DEV ONLY, never use in production.");
+    }
 
     // Live health feed: poll worker publishes, the WS stream subscribes.
     let (events, _rx) = tokio::sync::broadcast::channel(demon_workers::EVENT_CHANNEL_CAPACITY);
@@ -65,6 +74,7 @@ async fn run<R: Residency>(cfg: Config) -> anyhow::Result<()> {
         pending: demon_server::PendingStore::new(),
         audit,
         node,
+        dev_no_auth: cfg.dev_no_auth,
     };
     let app = router(state);
 
@@ -94,6 +104,99 @@ async fn run<R: Residency>(cfg: Config) -> anyhow::Result<()> {
             .await
             .context("server error")?;
     }
+    Ok(())
+}
+
+/// Seed a small demo fleet (hosts, a tenant, a service, varied health) so the API/TUI
+/// can be exercised locally without identity or real SSH. Idempotent (upserts).
+async fn seed_demo<R: Residency>(store: &Store<R>) -> anyhow::Result<()> {
+    use demon_core::{Fleet, HealthSnapshot, HealthStatus, Host, Service, TargetKind, Tenant};
+
+    let now = demon_workers::now_ms();
+    let region = R::REGION;
+    let tenant_id = "00000000-0000-4000-8000-000000000abc";
+
+    let hosts = [
+        Host {
+            id: "core-1".into(),
+            fqdn: format!("core-1.{region}.demon"),
+            fleet: Fleet::Core,
+            os: "freebsd".into(),
+            residency_group: region,
+            wg_ip: Some("10.200.0.2".into()),
+            tenant_id: None,
+            enrolled_at: now,
+            last_seen: Some(now),
+        },
+        Host {
+            id: "tnt-acme-1".into(),
+            fqdn: format!("acme-1.{region}.demon"),
+            fleet: Fleet::Tenant,
+            os: "linux".into(),
+            residency_group: region,
+            wg_ip: Some("10.200.0.50".into()),
+            tenant_id: Some(tenant_id.into()),
+            enrolled_at: now,
+            last_seen: Some(now),
+        },
+    ];
+    for h in &hosts {
+        store.upsert_host(h).await?;
+    }
+
+    store
+        .upsert_tenant(&Tenant {
+            id: tenant_id.into(),
+            name: "Acme Corp".into(),
+            residency_group: region,
+            lifecycle_state: "active".into(),
+            plan: Some("enterprise".into()),
+            created_at: now,
+        })
+        .await?;
+
+    store
+        .upsert_service(&Service {
+            id: "core-1/opensearch".into(),
+            host_id: "core-1".into(),
+            kind: "opensearch".into(),
+            version: Some("2.13".into()),
+            residency_group: region,
+            desired_state: None,
+            observed_state: Some("green".into()),
+            updated_at: now,
+        })
+        .await?;
+
+    let demo = [
+        ("core-1", "os", HealthStatus::Up),
+        ("core-1", "backup", HealthStatus::Up),
+        ("core-1", "fim", HealthStatus::Degraded),
+        ("core-1", "residency", HealthStatus::Up),
+        ("core-1", "access", HealthStatus::Up),
+        ("tnt-acme-1", "os", HealthStatus::Up),
+        ("tnt-acme-1", "backup", HealthStatus::Degraded),
+        ("tnt-acme-1", "compliance", HealthStatus::Degraded),
+        ("tnt-acme-1", "access", HealthStatus::Down),
+    ];
+    for (host, area, status) in demo {
+        store
+            .insert_health(&HealthSnapshot {
+                target_id: host.into(),
+                target_kind: TargetKind::Host,
+                area: area.into(),
+                status,
+                raw_json: "{\"demo\":true}".into(),
+                observed_at: now,
+            })
+            .await?;
+    }
+
+    println!(
+        "seeded {} hosts + 1 tenant + 1 service + {} health snapshots into region {region}",
+        hosts.len(),
+        demo.len()
+    );
     Ok(())
 }
 

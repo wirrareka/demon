@@ -63,6 +63,9 @@ pub struct AppState<R: Residency> {
     pub audit: Option<OpenSearchAudit>,
     /// This daemon's node hostname (B3 `node` field).
     pub node: String,
+    /// **DEV ONLY**: bypass the auth gate (`DEMON_DEV_NO_AUTH`). Must never be set in
+    /// production — the daemon warns loudly at startup when it is.
+    pub dev_no_auth: bool,
 }
 
 /// Build the router for residency group `R`. Liveness (`/health`, `/version`) and the
@@ -284,6 +287,7 @@ mod tests {
             pending: PendingStore::new(),
             audit: None,
             node: "test".into(),
+            dev_no_auth: false,
         });
     }
 }
