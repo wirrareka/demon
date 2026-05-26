@@ -29,3 +29,6 @@ config.local.*
 *.swp
 .idea/
 .vscode/
+
+# node V8 compile cache
+node-compile-cache/
