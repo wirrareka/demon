@@ -38,7 +38,9 @@ async fn run<R: Residency>(cfg: Config, seed: bool) -> anyhow::Result<()> {
     }
 
     if cfg.dev_no_auth {
-        tracing::warn!("DEMON_DEV_NO_AUTH is set — AUTH GATE BYPASSED. DEV ONLY, never use in production.");
+        tracing::warn!(
+            "DEMON_DEV_NO_AUTH is set — AUTH GATE BYPASSED. DEV ONLY, never use in production."
+        );
     }
 
     // Live health feed: poll worker publishes, the WS stream subscribes.
@@ -50,7 +52,10 @@ async fn run<R: Residency>(cfg: Config, seed: bool) -> anyhow::Result<()> {
         events.clone(),
         cfg.poll_interval,
     ));
-    tracing::info!(poll_secs = cfg.poll_interval.as_secs(), "health poller started");
+    tracing::info!(
+        poll_secs = cfg.poll_interval.as_secs(),
+        "health poller started"
+    );
 
     let identity = cfg.oidc.clone().map(demon_clients::IdentityClient::new);
     if identity.is_none() {
@@ -86,8 +91,8 @@ async fn run<R: Residency>(cfg: Config, seed: bool) -> anyhow::Result<()> {
     let app = router(state);
 
     if let Some(tls) = &cfg.tls {
-        let cert = std::fs::read(&tls.cert)
-            .with_context(|| format!("reading {}", tls.cert.display()))?;
+        let cert =
+            std::fs::read(&tls.cert).with_context(|| format!("reading {}", tls.cert.display()))?;
         let key =
             std::fs::read(&tls.key).with_context(|| format!("reading {}", tls.key.display()))?;
         let ca = std::fs::read(&tls.client_ca)

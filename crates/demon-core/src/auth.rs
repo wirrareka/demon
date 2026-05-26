@@ -70,7 +70,11 @@ pub fn principal_from_claims(claims: &Claims, daemon: Region) -> Result<Principa
     if roles.is_empty() {
         return Err(AuthnError::NoRecognisedRole(claims.roles.clone()));
     }
-    Ok(Principal::new(claims.sub.clone(), roles, claims.residency_group))
+    Ok(Principal::new(
+        claims.sub.clone(),
+        roles,
+        claims.residency_group,
+    ))
 }
 
 /// Strength of a second-factor assertion, ascending. `Ord` ⇒ a stronger factor
@@ -165,8 +169,8 @@ mod tests {
 
     #[test]
     fn maps_roles_and_subject() {
-        let p = principal_from_claims(&claims(Region::Eu, &["operator", "bogus"]), Region::Eu)
-            .unwrap();
+        let p =
+            principal_from_claims(&claims(Region::Eu, &["operator", "bogus"]), Region::Eu).unwrap();
         assert_eq!(p.sub, "op@x");
         assert_eq!(p.roles, vec![Role::Operator]); // bogus dropped
         assert_eq!(p.residency, Region::Eu);
@@ -174,7 +178,8 @@ mod tests {
 
     #[test]
     fn rejects_cross_residency_token() {
-        let err = principal_from_claims(&claims(Region::Uae, &["operator"]), Region::Eu).unwrap_err();
+        let err =
+            principal_from_claims(&claims(Region::Uae, &["operator"]), Region::Eu).unwrap_err();
         assert_eq!(
             err,
             AuthnError::ResidencyMismatch {
@@ -195,7 +200,10 @@ mod tests {
         let p = FactorPolicy::interim();
         assert_eq!(p.required(ActionClass::ReadOnly), FactorLevel::None);
         assert_eq!(p.required(ActionClass::Mutating), FactorLevel::None);
-        assert_eq!(p.required(ActionClass::Destructive), FactorLevel::WebAuthnPlatform);
+        assert_eq!(
+            p.required(ActionClass::Destructive),
+            FactorLevel::WebAuthnPlatform
+        );
         assert!(p.satisfied(ActionClass::Destructive, FactorLevel::WebAuthnRoaming));
         assert!(!p.satisfied(ActionClass::Destructive, FactorLevel::Totp));
         assert!(p.satisfied(ActionClass::Mutating, FactorLevel::None));

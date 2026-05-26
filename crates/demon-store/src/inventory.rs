@@ -357,7 +357,16 @@ impl<R: Residency> Store<R> {
             Some((s, h)) => (u64::try_from(s).unwrap_or(0) + 1, h),
             None => (0, GENESIS_HASH.to_owned()),
         };
-        let rec = AuditChain::link(&prev_hash, seq, actor, action, target, dry_run, redacted_payload, ts);
+        let rec = AuditChain::link(
+            &prev_hash,
+            seq,
+            actor,
+            action,
+            target,
+            dry_run,
+            redacted_payload,
+            ts,
+        );
         sqlx::query(
             "INSERT INTO audit (seq, prev_hash, hash, actor, action, target, dry_run, redacted_payload, ts)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
@@ -475,8 +484,14 @@ mod tests {
     #[tokio::test]
     async fn audit_append_chains_and_links() {
         let s = Store::<Eu>::open_in_memory().await.unwrap();
-        let r0 = s.append_audit("op@x", "session.open", "session:1", false, "{}", 100).await.unwrap();
-        let r1 = s.append_audit("op@x", "service.restart", "host:core-1", false, "ok", 200).await.unwrap();
+        let r0 = s
+            .append_audit("op@x", "session.open", "session:1", false, "{}", 100)
+            .await
+            .unwrap();
+        let r1 = s
+            .append_audit("op@x", "service.restart", "host:core-1", false, "ok", 200)
+            .await
+            .unwrap();
         assert_eq!(r0.seq, 0);
         assert_eq!(r1.seq, 1);
         assert_eq!(r1.prev_hash, r0.hash); // chained

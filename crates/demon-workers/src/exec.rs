@@ -49,7 +49,12 @@ pub struct ExecReport {
 }
 
 impl ExecReport {
-    fn failed(stage: &str, e: &dyn std::fmt::Display, dry: Option<String>, app: Option<String>) -> Self {
+    fn failed(
+        stage: &str,
+        e: &dyn std::fmt::Display,
+        dry: Option<String>,
+        app: Option<String>,
+    ) -> Self {
         Self {
             final_state: JobState::Failed,
             dry_run_output: dry,
@@ -95,9 +100,15 @@ where
         },
         None => None,
     };
-    let down = verify.as_ref().is_some_and(|c| c.status == HealthStatus::Down);
+    let down = verify
+        .as_ref()
+        .is_some_and(|c| c.status == HealthStatus::Down);
     ExecReport {
-        final_state: if down { JobState::Failed } else { JobState::Verified },
+        final_state: if down {
+            JobState::Failed
+        } else {
+            JobState::Verified
+        },
         dry_run_output: Some(dry),
         apply_output: Some(applied),
         verify,
@@ -162,7 +173,10 @@ impl<T: Transport> Mutator for SshMutator<T> {
             } else {
                 cmd
             };
-            Ok(self.transport.run_readonly(&self.host_addr, &to_run).await?)
+            Ok(self
+                .transport
+                .run_readonly(&self.host_addr, &to_run)
+                .await?)
         }
     }
 }
@@ -187,7 +201,11 @@ mod tests {
             let ok = if dry_run { self.dry_ok } else { self.apply_ok };
             async move {
                 if ok {
-                    Ok(if dry_run { "dry ok".into() } else { "applied".into() })
+                    Ok(if dry_run {
+                        "dry ok".into()
+                    } else {
+                        "applied".into()
+                    })
                 } else {
                     Err(ExecError::Unsupported("test"))
                 }
@@ -216,7 +234,10 @@ mod tests {
 
     #[tokio::test]
     async fn happy_path_verifies() {
-        let m = MockMutator { dry_ok: true, apply_ok: true };
+        let m = MockMutator {
+            dry_ok: true,
+            apply_ok: true,
+        };
         let report = execute(&plan(), &m, &verify_transport("ok"), "10.0.0.1").await;
         assert_eq!(report.final_state, JobState::Verified);
         assert_eq!(report.apply_output.as_deref(), Some("applied"));
@@ -225,7 +246,10 @@ mod tests {
 
     #[tokio::test]
     async fn dry_run_failure_aborts_before_apply() {
-        let m = MockMutator { dry_ok: false, apply_ok: true };
+        let m = MockMutator {
+            dry_ok: false,
+            apply_ok: true,
+        };
         let report = execute(&plan(), &m, &verify_transport("ok"), "10.0.0.1").await;
         assert_eq!(report.final_state, JobState::Failed);
         assert!(report.apply_output.is_none());
@@ -234,7 +258,10 @@ mod tests {
 
     #[tokio::test]
     async fn verify_down_fails_job() {
-        let m = MockMutator { dry_ok: true, apply_ok: true };
+        let m = MockMutator {
+            dry_ok: true,
+            apply_ok: true,
+        };
         // backup verdict=stale -> Degraded (not Down) still passes; use a Down-rolling area instead:
         let report = execute(&plan(), &m, &verify_transport("stale"), "10.0.0.1").await;
         // stale => Degraded, not Down => still Verified

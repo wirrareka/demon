@@ -166,7 +166,14 @@ pub(crate) async fn start<R: Residency>(
     // Durable audit of the runbook start (per-step actions are audited on apply).
     let _ = s
         .store
-        .append_audit(&ctx.principal.sub, "runbook.start", &req.target, false, &format!("{{\"runbook\":\"{}\"}}", rb.id()), now_ms())
+        .append_audit(
+            &ctx.principal.sub,
+            "runbook.start",
+            &req.target,
+            false,
+            &format!("{{\"runbook\":\"{}\"}}", rb.id()),
+            now_ms(),
+        )
         .await;
 
     let step_dtos = planned
@@ -222,9 +229,15 @@ pub(crate) async fn get_run<R: Residency>(
         }
         steps.push(RunStepDto {
             job_id: jid.clone(),
-            action: descriptions.get(idx).map_or_else(String::new, |st| st.action.id().to_owned()),
-            description: descriptions.get(idx).map_or_else(String::new, |st| st.description.clone()),
-            confirm_phrase: job.as_ref().map_or_else(String::new, |j| j.plan.confirm_phrase.clone()),
+            action: descriptions
+                .get(idx)
+                .map_or_else(String::new, |st| st.action.id().to_owned()),
+            description: descriptions
+                .get(idx)
+                .map_or_else(String::new, |st| st.description.clone()),
+            confirm_phrase: job
+                .as_ref()
+                .map_or_else(String::new, |j| j.plan.confirm_phrase.clone()),
             dual_control: job.as_ref().is_some_and(|j| j.plan.dual_control),
             state,
         });

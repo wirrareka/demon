@@ -112,7 +112,9 @@ pub fn parse_os(output: &str) -> OsStatus {
     let get = |k: &str| f.get(k).map_or_else(String::new, |s| (*s).to_owned());
     OsStatus {
         host: get("host"),
-        family: f.get("family").map_or(OsFamily::Unknown, |s| OsFamily::parse(s)),
+        family: f
+            .get("family")
+            .map_or(OsFamily::Unknown, |s| OsFamily::parse(s)),
         id: get("id"),
         version: get("version"),
         pkg: get("pkg"),
@@ -203,7 +205,10 @@ pub fn parse_fim(output: &str) -> FimStatus {
     };
     FimStatus {
         host: f.get("host").map_or_else(String::new, |s| (*s).to_owned()),
-        last_verify: f.get("last_verify").and_then(|s| s.parse().ok()).unwrap_or(0),
+        last_verify: f
+            .get("last_verify")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0),
         drift: f.get("drift").and_then(|s| s.parse().ok()).unwrap_or(0),
         pkg_mismatch: f
             .get("pkg_mismatch")
@@ -505,7 +510,8 @@ mod tests {
         assert_eq!(ok.health(), HealthStatus::Up);
         let stale = parse_backup("BACKUP\thost=h\tstores=2\tworst_age_hours=99\tverdict=stale");
         assert_eq!(stale.health(), HealthStatus::Degraded);
-        let unk = parse_backup("BACKUP\thost=h\tstores=0\tworst_age_hours=unknown\tverdict=unknown");
+        let unk =
+            parse_backup("BACKUP\thost=h\tstores=0\tworst_age_hours=unknown\tverdict=unknown");
         assert_eq!(unk.worst_age_hours, None);
         assert_eq!(unk.health(), HealthStatus::Unknown);
         assert_eq!(parse_backup("").health(), HealthStatus::Unknown);
@@ -513,15 +519,19 @@ mod tests {
 
     #[test]
     fn fim_baseline_and_drift_to_health() {
-        let clean = parse_fim("FIM\thost=h\tlast_verify=1700\tdrift=0\tpkg_mismatch=0\tbaseline=present");
+        let clean =
+            parse_fim("FIM\thost=h\tlast_verify=1700\tdrift=0\tpkg_mismatch=0\tbaseline=present");
         assert_eq!(clean.last_verify, 1700);
         assert_eq!(clean.health(), HealthStatus::Up);
-        let drifted = parse_fim("FIM\thost=h\tlast_verify=1700\tdrift=4\tpkg_mismatch=0\tbaseline=present");
+        let drifted =
+            parse_fim("FIM\thost=h\tlast_verify=1700\tdrift=4\tpkg_mismatch=0\tbaseline=present");
         assert_eq!(drifted.drift, 4);
         assert_eq!(drifted.health(), HealthStatus::Degraded);
-        let partial = parse_fim("FIM\thost=h\tlast_verify=0\tdrift=0\tpkg_mismatch=0\tbaseline=partial");
+        let partial =
+            parse_fim("FIM\thost=h\tlast_verify=0\tdrift=0\tpkg_mismatch=0\tbaseline=partial");
         assert_eq!(partial.health(), HealthStatus::Degraded);
-        let missing = parse_fim("FIM\thost=h\tlast_verify=0\tdrift=0\tpkg_mismatch=0\tbaseline=missing");
+        let missing =
+            parse_fim("FIM\thost=h\tlast_verify=0\tdrift=0\tpkg_mismatch=0\tbaseline=missing");
         assert_eq!(missing.health(), HealthStatus::Down);
         assert_eq!(parse_fim("").health(), HealthStatus::Unknown);
     }
@@ -552,25 +562,37 @@ mod tests {
     #[test]
     fn drift_residency_compliance_to_health() {
         assert_eq!(
-            parse_drift("DRIFT\thost=h\tcommit=abc123\tdirty=0\tahead=0\tbehind=0\tverdict=ok").health(),
+            parse_drift("DRIFT\thost=h\tcommit=abc123\tdirty=0\tahead=0\tbehind=0\tverdict=ok")
+                .health(),
             HealthStatus::Up
         );
         assert_eq!(
-            parse_drift("DRIFT\thost=h\tcommit=abc123\tdirty=2\tahead=1\tbehind=0\tverdict=drift").health(),
+            parse_drift("DRIFT\thost=h\tcommit=abc123\tdirty=2\tahead=1\tbehind=0\tverdict=drift")
+                .health(),
             HealthStatus::Degraded
         );
         // residency violation is critical
         assert_eq!(
-            parse_residency("RESIDENCY\thost=h\tgroup=eu\tpeers=4\tcross_group_peers=1\tverdict=violation").health(),
+            parse_residency(
+                "RESIDENCY\thost=h\tgroup=eu\tpeers=4\tcross_group_peers=1\tverdict=violation"
+            )
+            .health(),
             HealthStatus::Down
         );
         assert_eq!(
-            parse_residency("RESIDENCY\thost=h\tgroup=eu\tpeers=4\tcross_group_peers=0\tverdict=ok").health(),
+            parse_residency(
+                "RESIDENCY\thost=h\tgroup=eu\tpeers=4\tcross_group_peers=0\tverdict=ok"
+            )
+            .health(),
             HealthStatus::Up
         );
-        let clean = parse_compliance("COMPLIANCE\thost=h\tprofile=cis-freebsd\tpass=40\tfail=0\twarn=0\tscore=100");
+        let clean = parse_compliance(
+            "COMPLIANCE\thost=h\tprofile=cis-freebsd\tpass=40\tfail=0\twarn=0\tscore=100",
+        );
         assert_eq!(clean.health(), HealthStatus::Up);
-        let failing = parse_compliance("COMPLIANCE\thost=h\tprofile=cis-freebsd\tpass=30\tfail=5\twarn=5\tscore=75");
+        let failing = parse_compliance(
+            "COMPLIANCE\thost=h\tprofile=cis-freebsd\tpass=30\tfail=5\twarn=5\tscore=75",
+        );
         assert_eq!(failing.fail, 5);
         assert_eq!(failing.health(), HealthStatus::Degraded);
         assert_eq!(parse_compliance("").health(), HealthStatus::Unknown);

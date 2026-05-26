@@ -58,9 +58,9 @@ impl GuardedAction {
     #[must_use]
     pub const fn class(self) -> ActionClass {
         match self {
-            GuardedAction::ServiceRestart
-            | GuardedAction::BackupRun
-            | GuardedAction::PkgUpdate => ActionClass::Mutating,
+            GuardedAction::ServiceRestart | GuardedAction::BackupRun | GuardedAction::PkgUpdate => {
+                ActionClass::Mutating
+            }
             GuardedAction::HostDrain | GuardedAction::ScaleOut => ActionClass::Destructive,
             GuardedAction::CertRotate => ActionClass::CaUse,
         }
@@ -237,7 +237,10 @@ impl JobState {
     /// Terminal states accept no further transitions.
     #[must_use]
     pub fn is_terminal(self) -> bool {
-        matches!(self, JobState::Verified | JobState::Failed | JobState::RolledBack)
+        matches!(
+            self,
+            JobState::Verified | JobState::Failed | JobState::RolledBack
+        )
     }
 }
 
@@ -259,7 +262,10 @@ mod tests {
         assert!(!GuardedAction::ServiceRestart.requires_dual_control());
         assert!(GuardedAction::HostDrain.requires_dual_control()); // Destructive
         assert!(GuardedAction::CertRotate.requires_dual_control()); // CaUse
-        assert_eq!(GuardedAction::from_id("backup.run"), Some(GuardedAction::BackupRun));
+        assert_eq!(
+            GuardedAction::from_id("backup.run"),
+            Some(GuardedAction::BackupRun)
+        );
         assert_eq!(GuardedAction::from_id("nope"), None);
     }
 
@@ -283,8 +289,16 @@ mod tests {
 
     #[test]
     fn plan_confirm_phrase_must_match_exactly() {
-        let plan = Plan::from_capability(&cap("service.restart", ActionClass::Mutating, Role::Operator)).unwrap();
-        assert_eq!(plan.confirm_phrase, "service.restart host:core-1/opensearch");
+        let plan = Plan::from_capability(&cap(
+            "service.restart",
+            ActionClass::Mutating,
+            Role::Operator,
+        ))
+        .unwrap();
+        assert_eq!(
+            plan.confirm_phrase,
+            "service.restart host:core-1/opensearch"
+        );
         assert!(plan.confirm_matches("service.restart host:core-1/opensearch"));
         assert!(!plan.confirm_matches("service.restart host:core-1"));
         assert!(!plan.dual_control);
@@ -292,13 +306,18 @@ mod tests {
 
     #[test]
     fn plan_flags_dual_control_for_destructive() {
-        let plan = Plan::from_capability(&cap("host.drain", ActionClass::Destructive, Role::Senior)).unwrap();
+        let plan =
+            Plan::from_capability(&cap("host.drain", ActionClass::Destructive, Role::Senior))
+                .unwrap();
         assert!(plan.dual_control);
     }
 
     #[test]
     fn unknown_action_has_no_plan() {
-        assert!(Plan::from_capability(&cap("frobnicate", ActionClass::Mutating, Role::Operator)).is_none());
+        assert!(
+            Plan::from_capability(&cap("frobnicate", ActionClass::Mutating, Role::Operator))
+                .is_none()
+        );
     }
 
     #[test]
@@ -313,7 +332,9 @@ mod tests {
 
     #[test]
     fn job_transitions_follow_the_pipeline() {
-        use JobState::{Applying, AwaitingApproval, Confirmed, DryRunOk, Failed, Planned, RolledBack, Verified};
+        use JobState::{
+            Applying, AwaitingApproval, Confirmed, DryRunOk, Failed, Planned, RolledBack, Verified,
+        };
         assert!(Planned.can_advance_to(AwaitingApproval));
         assert!(Planned.can_advance_to(Confirmed));
         assert!(Confirmed.can_advance_to(DryRunOk));

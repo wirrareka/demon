@@ -16,11 +16,11 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum::Json;
 use serde::Deserialize;
 
+use demon_clients::{authorize_url, pkce, random_state};
 use demon_core::{
     principal_from_claims, Actor, AuditEvent, FactorLevel, Outcome, Principal, Residency, Role,
     Target,
 };
-use demon_clients::{authorize_url, pkce, random_state};
 
 use crate::session::{AuthCtx, Pending, Session};
 use crate::{now_ms, now_rfc3339, AppState, ErrorBody};
@@ -138,7 +138,10 @@ pub(crate) async fn callback<R: Residency>(
         Ok(d) => d,
         Err(e) => return bad_gateway(e.to_string()),
     };
-    let tokens = match idc.exchange_code(&disc.token_endpoint, &q.code, &pending.verifier).await {
+    let tokens = match idc
+        .exchange_code(&disc.token_endpoint, &q.code, &pending.verifier)
+        .await
+    {
         Ok(t) => t,
         Err(e) => return bad_gateway(e.to_string()),
     };
@@ -202,11 +205,7 @@ pub(crate) async fn logout<R: Residency>(
         }
         s.sessions.remove(&id);
     }
-    (
-        [(header::SET_COOKIE, set_cookie("", 0))],
-        Redirect::to("/"),
-    )
-        .into_response()
+    ([(header::SET_COOKIE, set_cookie("", 0))], Redirect::to("/")).into_response()
 }
 
 /// Fail-closed auth gate: requires a valid, unexpired session cookie.
@@ -249,7 +248,10 @@ mod tests {
     #[test]
     fn parses_session_cookie_among_others() {
         let mut h = HeaderMap::new();
-        h.insert(header::COOKIE, "foo=1; demon_session=abc123; bar=2".parse().unwrap());
+        h.insert(
+            header::COOKIE,
+            "foo=1; demon_session=abc123; bar=2".parse().unwrap(),
+        );
         assert_eq!(session_cookie(&h).as_deref(), Some("abc123"));
         assert!(session_cookie(&HeaderMap::new()).is_none());
     }

@@ -83,12 +83,23 @@ impl RunbookId {
             description: description.to_owned(),
         };
         match self {
-            RunbookId::RestartService => vec![step(GuardedAction::ServiceRestart, "Restart the service")],
+            RunbookId::RestartService => {
+                vec![step(GuardedAction::ServiceRestart, "Restart the service")]
+            }
             RunbookId::RotateCert => vec![
-                step(GuardedAction::CertRotate, "Rotate the certificate (uses the signing CA)"),
-                step(GuardedAction::ServiceRestart, "Restart the service to load the new certificate"),
+                step(
+                    GuardedAction::CertRotate,
+                    "Rotate the certificate (uses the signing CA)",
+                ),
+                step(
+                    GuardedAction::ServiceRestart,
+                    "Restart the service to load the new certificate",
+                ),
             ],
-            RunbookId::RunBackup => vec![step(GuardedAction::BackupRun, "Run a fresh backup and verify recency")],
+            RunbookId::RunBackup => vec![step(
+                GuardedAction::BackupRun,
+                "Run a fresh backup and verify recency",
+            )],
             RunbookId::DrainHost => vec![step(GuardedAction::HostDrain, "Drain load off the host")],
             RunbookId::PkgUpdate => vec![step(
                 GuardedAction::PkgUpdate,
@@ -169,7 +180,10 @@ mod tests {
 
     #[test]
     fn catalog_ids_and_steps() {
-        assert_eq!(RunbookId::from_id("rotate-cert"), Some(RunbookId::RotateCert));
+        assert_eq!(
+            RunbookId::from_id("rotate-cert"),
+            Some(RunbookId::RotateCert)
+        );
         assert_eq!(RunbookId::from_id("nope"), None);
         let steps = RunbookId::RotateCert.steps("host:core-1/service:kalista");
         assert_eq!(steps.len(), 2);
@@ -197,7 +211,7 @@ mod tests {
         run.advance(false);
         assert_eq!(run.status, RunStatus::Failed);
         assert_eq!(run.current, 0); // did not advance past the failed step
-        // further advances are no-ops
+                                    // further advances are no-ops
         run.advance(true);
         assert_eq!(run.status, RunStatus::Failed);
     }

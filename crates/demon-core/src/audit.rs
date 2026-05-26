@@ -87,7 +87,9 @@ impl AuditChain {
     /// The current head hash (genesis if empty).
     #[must_use]
     pub fn head(&self) -> &str {
-        self.records.last().map_or(GENESIS_HASH, |r| r.hash.as_str())
+        self.records
+            .last()
+            .map_or(GENESIS_HASH, |r| r.hash.as_str())
     }
 
     /// All records, in order.
@@ -188,7 +190,10 @@ impl AuditChain {
         for (i, r) in self.records.iter().enumerate() {
             let seq = i as u64;
             if r.seq != seq {
-                return Err(ChainError::Sequence { at: i, found: r.seq });
+                return Err(ChainError::Sequence {
+                    at: i,
+                    found: r.seq,
+                });
             }
             if r.prev_hash != expected_prev {
                 return Err(ChainError::BrokenLink { seq });
@@ -245,8 +250,22 @@ mod tests {
 
     fn two_record_chain() -> AuditChain {
         let mut c = AuditChain::new();
-        c.append("op@x", "service.restart", "host:1/opensearch", false, "ok", 1_000);
-        c.append("sr@x", "tenant.decommission", "tenant:42", true, "plan only", 2_000);
+        c.append(
+            "op@x",
+            "service.restart",
+            "host:1/opensearch",
+            false,
+            "ok",
+            1_000,
+        );
+        c.append(
+            "sr@x",
+            "tenant.decommission",
+            "tenant:42",
+            true,
+            "plan only",
+            2_000,
+        );
         c
     }
 

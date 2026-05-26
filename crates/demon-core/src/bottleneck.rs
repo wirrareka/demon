@@ -90,19 +90,43 @@ fn finding(signal: &str, confidence: Confidence, detail: String) -> Finding {
 pub fn detect(load: &ServiceLoad) -> Vec<Finding> {
     let mut out = Vec::new();
     if load.cpu_pct >= 90.0 {
-        out.push(finding("cpu", Confidence::High, format!("cpu at {:.0}%", load.cpu_pct)));
+        out.push(finding(
+            "cpu",
+            Confidence::High,
+            format!("cpu at {:.0}%", load.cpu_pct),
+        ));
     } else if load.cpu_pct >= 80.0 {
-        out.push(finding("cpu", Confidence::Medium, format!("cpu at {:.0}%", load.cpu_pct)));
+        out.push(finding(
+            "cpu",
+            Confidence::Medium,
+            format!("cpu at {:.0}%", load.cpu_pct),
+        ));
     }
     if load.mem_pct >= 90.0 {
-        out.push(finding("mem", Confidence::High, format!("memory at {:.0}%", load.mem_pct)));
+        out.push(finding(
+            "mem",
+            Confidence::High,
+            format!("memory at {:.0}%", load.mem_pct),
+        ));
     } else if load.mem_pct >= 80.0 {
-        out.push(finding("mem", Confidence::Medium, format!("memory at {:.0}%", load.mem_pct)));
+        out.push(finding(
+            "mem",
+            Confidence::Medium,
+            format!("memory at {:.0}%", load.mem_pct),
+        ));
     }
     if load.disk_pct >= 85.0 {
-        out.push(finding("disk", Confidence::High, format!("disk at {:.0}%", load.disk_pct)));
+        out.push(finding(
+            "disk",
+            Confidence::High,
+            format!("disk at {:.0}%", load.disk_pct),
+        ));
     } else if load.disk_pct >= 75.0 {
-        out.push(finding("disk", Confidence::Low, format!("disk at {:.0}%", load.disk_pct)));
+        out.push(finding(
+            "disk",
+            Confidence::Low,
+            format!("disk at {:.0}%", load.disk_pct),
+        ));
     }
     if load.p99_latency_ms >= 1000.0 {
         out.push(finding(
@@ -118,9 +142,17 @@ pub fn detect(load: &ServiceLoad) -> Vec<Finding> {
         ));
     }
     if load.queue_depth >= 1000 {
-        out.push(finding("queue", Confidence::High, format!("queue depth {}", load.queue_depth)));
+        out.push(finding(
+            "queue",
+            Confidence::High,
+            format!("queue depth {}", load.queue_depth),
+        ));
     } else if load.queue_depth >= 200 {
-        out.push(finding("queue", Confidence::Medium, format!("queue depth {}", load.queue_depth)));
+        out.push(finding(
+            "queue",
+            Confidence::Medium,
+            format!("queue depth {}", load.queue_depth),
+        ));
     }
     out
 }

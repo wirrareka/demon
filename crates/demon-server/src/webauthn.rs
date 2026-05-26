@@ -77,17 +77,27 @@ pub(crate) async fn register_start<R: Residency>(
     Extension(ctx): Extension<AuthCtx>,
 ) -> Response {
     let Some(wa) = s.webauthn.clone() else {
-        return err(StatusCode::SERVICE_UNAVAILABLE, "WebAuthn is not configured");
+        return err(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "WebAuthn is not configured",
+        );
     };
     let sub = ctx.principal.sub.clone();
     let user_id = Uuid::new_v5(&Uuid::NAMESPACE_OID, sub.as_bytes());
-    let exclude: Vec<CredentialID> = wa.passkeys_for(&sub).iter().map(|p| p.cred_id().clone()).collect();
+    let exclude: Vec<CredentialID> = wa
+        .passkeys_for(&sub)
+        .iter()
+        .map(|p| p.cred_id().clone())
+        .collect();
     match wa
         .webauthn
         .start_passkey_registration(user_id, &sub, &sub, Some(exclude))
     {
         Ok((ccr, reg)) => {
-            wa.reg.lock().unwrap_or_else(PoisonError::into_inner).insert(sub, reg);
+            wa.reg
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .insert(sub, reg);
             Json(ccr).into_response()
         }
         Err(e) => err(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
@@ -101,10 +111,17 @@ pub(crate) async fn register_finish<R: Residency>(
     Json(cred): Json<RegisterPublicKeyCredential>,
 ) -> Response {
     let Some(wa) = s.webauthn.clone() else {
-        return err(StatusCode::SERVICE_UNAVAILABLE, "WebAuthn is not configured");
+        return err(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "WebAuthn is not configured",
+        );
     };
     let sub = ctx.principal.sub.clone();
-    let reg = wa.reg.lock().unwrap_or_else(PoisonError::into_inner).remove(&sub);
+    let reg = wa
+        .reg
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .remove(&sub);
     let Some(reg) = reg else {
         return err(StatusCode::BAD_REQUEST, "no registration in progress");
     };
@@ -129,11 +146,17 @@ pub(crate) async fn stepup_start<R: Residency>(
     Path(job_id): Path<String>,
 ) -> Response {
     let Some(wa) = s.webauthn.clone() else {
-        return err(StatusCode::SERVICE_UNAVAILABLE, "WebAuthn is not configured");
+        return err(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "WebAuthn is not configured",
+        );
     };
     let passkeys = wa.passkeys_for(&ctx.principal.sub);
     if passkeys.is_empty() {
-        return err(StatusCode::BAD_REQUEST, "no passkey registered — register one first");
+        return err(
+            StatusCode::BAD_REQUEST,
+            "no passkey registered — register one first",
+        );
     }
     match wa.webauthn.start_passkey_authentication(&passkeys) {
         Ok((rcr, auth)) => {
@@ -156,18 +179,33 @@ pub(crate) async fn stepup_finish<R: Residency>(
     Json(cred): Json<PublicKeyCredential>,
 ) -> Response {
     let Some(wa) = s.webauthn.clone() else {
-        return err(StatusCode::SERVICE_UNAVAILABLE, "WebAuthn is not configured");
+        return err(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "WebAuthn is not configured",
+        );
     };
-    let entry = wa.auth.lock().unwrap_or_else(PoisonError::into_inner).remove(&job_id);
+    let entry = wa
+        .auth
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .remove(&job_id);
     let Some((sub, auth)) = entry else {
-        return err(StatusCode::BAD_REQUEST, "no step-up in progress for this job");
+        return err(
+            StatusCode::BAD_REQUEST,
+            "no step-up in progress for this job",
+        );
     };
     if sub != ctx.principal.sub {
-        return err(StatusCode::FORBIDDEN, "step-up belongs to a different operator");
+        return err(
+            StatusCode::FORBIDDEN,
+            "step-up belongs to a different operator",
+        );
     }
     match wa.webauthn.finish_passkey_authentication(&cred, &auth) {
         Ok(_result) => {
-            if s.jobs.mark_stepped_up(&job_id, FactorLevel::WebAuthnPlatform) {
+            if s.jobs
+                .mark_stepped_up(&job_id, FactorLevel::WebAuthnPlatform)
+            {
                 Json(serde_json::json!({ "stepped_up": "webauthn_platform" })).into_response()
             } else {
                 err(StatusCode::NOT_FOUND, "job disappeared")

@@ -184,12 +184,16 @@ pub(crate) fn plan_job<R: Residency>(
     action_id: &str,
     target: &str,
 ) -> Result<Job, (StatusCode, String)> {
-    let ga = GuardedAction::from_id(action_id)
-        .ok_or((StatusCode::NOT_FOUND, format!("unknown action {action_id:?}")))?;
+    let ga = GuardedAction::from_id(action_id).ok_or((
+        StatusCode::NOT_FOUND,
+        format!("unknown action {action_id:?}"),
+    ))?;
     let spec = ActionSpec::new(action_id.to_owned(), target.to_owned(), ga.class());
     let cap = authorize(principal, spec).map_err(|e| (StatusCode::FORBIDDEN, e.to_string()))?;
-    let plan = Plan::from_capability(&cap)
-        .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "could not build plan".to_owned()))?;
+    let plan = Plan::from_capability(&cap).ok_or((
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "could not build plan".to_owned(),
+    ))?;
     let dual = plan
         .dual_control
         .then(|| DualControl::new(principal.sub.clone(), 1));
@@ -226,7 +230,14 @@ pub(crate) async fn create<R: Residency>(
         Ok(j) => j,
         Err((code, msg)) => return err(code, msg),
     };
-    audit(&s, &ctx.principal.sub, "job.plan", &job.plan.target, Outcome::Success).await;
+    audit(
+        &s,
+        &ctx.principal.sub,
+        "job.plan",
+        &job.plan.target,
+        Outcome::Success,
+    )
+    .await;
     (StatusCode::CREATED, Json(dto(&job))).into_response()
 }
 
@@ -246,7 +257,14 @@ pub(crate) async fn approve<R: Residency>(
         return err(StatusCode::CONFLICT, e.to_string());
     }
     s.jobs.put(job.clone());
-    audit(&s, &ctx.principal.sub, "job.approve", &job.plan.target, Outcome::Success).await;
+    audit(
+        &s,
+        &ctx.principal.sub,
+        "job.approve",
+        &job.plan.target,
+        Outcome::Success,
+    )
+    .await;
     Json(dto(&job)).into_response()
 }
 
@@ -276,7 +294,14 @@ pub(crate) async fn confirm<R: Residency>(
     }
     job.state = JobState::Confirmed;
     s.jobs.put(job.clone());
-    audit(&s, &ctx.principal.sub, "job.confirm", &job.plan.target, Outcome::Success).await;
+    audit(
+        &s,
+        &ctx.principal.sub,
+        "job.confirm",
+        &job.plan.target,
+        Outcome::Success,
+    )
+    .await;
     Json(dto(&job)).into_response()
 }
 
@@ -324,7 +349,11 @@ pub(crate) async fn apply<R: Residency>(
         Err(e) => return err(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     };
     let addr = host.wg_ip.clone().unwrap_or_else(|| host.fqdn.clone());
-    let service_mgr = if host.os.contains("freebsd") { "rc" } else { "systemd" };
+    let service_mgr = if host.os.contains("freebsd") {
+        "rc"
+    } else {
+        "systemd"
+    };
     let mutator = SshMutator::new(s.transport.clone(), addr.clone(), service_mgr);
 
     let report = execute(&job.plan, &mutator, &s.transport, &addr).await;
@@ -337,7 +366,14 @@ pub(crate) async fn apply<R: Residency>(
     } else {
         Outcome::Failure
     };
-    audit(&s, &ctx.principal.sub, job.plan.action.id(), &job.plan.target, outcome).await;
+    audit(
+        &s,
+        &ctx.principal.sub,
+        job.plan.action.id(),
+        &job.plan.target,
+        outcome,
+    )
+    .await;
 
     let dto = ApplyDto {
         state: state_str(report.final_state),

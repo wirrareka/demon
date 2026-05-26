@@ -68,14 +68,15 @@ impl Config {
             .and_then(|s| s.parse().ok())
             .unwrap_or(60);
         let poll_interval = Duration::from_secs(poll_secs.max(1));
-        let oidc = std::env::var("DEMON_OIDC_ISSUER")
-            .ok()
-            .map(|issuer| demon_clients::OidcConfig {
-                issuer,
-                client_id: std::env::var("DEMON_OIDC_CLIENT_ID").unwrap_or_default(),
-                client_secret: std::env::var("DEMON_OIDC_CLIENT_SECRET").unwrap_or_default(),
-                redirect_uri: std::env::var("DEMON_OIDC_REDIRECT_URI").unwrap_or_default(),
-            });
+        let oidc =
+            std::env::var("DEMON_OIDC_ISSUER")
+                .ok()
+                .map(|issuer| demon_clients::OidcConfig {
+                    issuer,
+                    client_id: std::env::var("DEMON_OIDC_CLIENT_ID").unwrap_or_default(),
+                    client_secret: std::env::var("DEMON_OIDC_CLIENT_SECRET").unwrap_or_default(),
+                    redirect_uri: std::env::var("DEMON_OIDC_REDIRECT_URI").unwrap_or_default(),
+                });
         let tls = match (
             std::env::var("DEMON_TLS_CERT"),
             std::env::var("DEMON_TLS_KEY"),

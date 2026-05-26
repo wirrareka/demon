@@ -107,11 +107,26 @@ pub fn router<R: Residency>(state: AppState<R>) -> Router {
         .route("/api/v1/jobs/{id}/apply", post(jobs::apply::<R>))
         .route("/api/v1/runbooks", get(runbooks::catalog::<R>))
         .route("/api/v1/runbooks/{id}/runs", post(runbooks::start::<R>))
-        .route("/api/v1/runbooks/runs/{run_id}", get(runbooks::get_run::<R>))
-        .route("/api/v1/webauthn/register/start", post(webauthn::register_start::<R>))
-        .route("/api/v1/webauthn/register/finish", post(webauthn::register_finish::<R>))
-        .route("/api/v1/jobs/{id}/stepup/start", post(webauthn::stepup_start::<R>))
-        .route("/api/v1/jobs/{id}/stepup/finish", post(webauthn::stepup_finish::<R>))
+        .route(
+            "/api/v1/runbooks/runs/{run_id}",
+            get(runbooks::get_run::<R>),
+        )
+        .route(
+            "/api/v1/webauthn/register/start",
+            post(webauthn::register_start::<R>),
+        )
+        .route(
+            "/api/v1/webauthn/register/finish",
+            post(webauthn::register_finish::<R>),
+        )
+        .route(
+            "/api/v1/jobs/{id}/stepup/start",
+            post(webauthn::stepup_start::<R>),
+        )
+        .route(
+            "/api/v1/jobs/{id}/stepup/finish",
+            post(webauthn::stepup_finish::<R>),
+        )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth::<R>,
@@ -310,10 +325,7 @@ struct LoadReport {
     confidence: Option<demon_core::Confidence>,
 }
 
-async fn host_load<R: Residency>(
-    State(s): State<AppState<R>>,
-    Path(id): Path<String>,
-) -> Response {
+async fn host_load<R: Residency>(State(s): State<AppState<R>>, Path(id): Path<String>) -> Response {
     let Some(prom) = s.metrics.clone() else {
         return (
             StatusCode::SERVICE_UNAVAILABLE,

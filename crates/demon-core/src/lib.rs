@@ -27,14 +27,14 @@ pub mod residency;
 pub mod runbook;
 
 pub use action::{ActionClass, ActionSpec, Capability};
+pub use audit::{AuditChain, AuditRecord, GENESIS_HASH};
 pub use audit_event::{Actor, ActorKind, AuditEvent, Outcome, Target};
+pub use auth::{principal_from_claims, AuthnError, Claims, FactorLevel, FactorPolicy};
+pub use authorize::{authorize, AuthzError, Principal, Role};
 pub use bottleneck::{
     analyze, desired_nodes, detect, BottleneckReport, CapacityModel, Confidence, Finding,
     ScaleRecommendation, ServiceLoad,
 };
-pub use auth::{principal_from_claims, AuthnError, Claims, FactorLevel, FactorPolicy};
-pub use audit::{AuditChain, AuditRecord, GENESIS_HASH};
-pub use authorize::{authorize, AuthzError, Principal, Role};
 pub use contracts::{
     parse_access, parse_audit, parse_backup, parse_compliance, parse_drift, parse_fim, parse_line,
     parse_os, parse_residency, AccessStatus, AuditStatus, BackupStatus, ComplianceStatus,
@@ -42,9 +42,7 @@ pub use contracts::{
 };
 pub use health::HealthStatus;
 pub use inventory::{Fleet, HealthSnapshot, Host, Service, TargetKind, Tenant};
-pub use mutation::{
-    available_actions, ApprovalError, DualControl, GuardedAction, JobState, Plan,
-};
+pub use mutation::{available_actions, ApprovalError, DualControl, GuardedAction, JobState, Plan};
 pub use reconcile::{reconcile, Drift, ReconcilePlan};
-pub use runbook::{RunStatus, RunbookId, RunbookRun, RunbookStep};
 pub use residency::{Eu, Region, Residency, Uae};
+pub use runbook::{RunStatus, RunbookId, RunbookRun, RunbookStep};

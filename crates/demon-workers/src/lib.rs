@@ -13,8 +13,8 @@ pub mod exec;
 
 use std::time::Duration;
 
-use demon_core::{HealthSnapshot, HealthStatus, Residency, TargetKind};
 use demon_collect::{collect, CheckArea, Transport};
+use demon_core::{HealthSnapshot, HealthStatus, Residency, TargetKind};
 use demon_store::{Store, StoreError};
 use tokio::sync::broadcast;
 
@@ -136,7 +136,8 @@ mod tests {
         );
         responses.insert(
             "check-fim.sh".to_owned(),
-            "FIM\thost=core-1\tlast_verify=1700\tdrift=2\tpkg_mismatch=0\tbaseline=present".to_owned(),
+            "FIM\thost=core-1\tlast_verify=1700\tdrift=2\tpkg_mismatch=0\tbaseline=present"
+                .to_owned(),
         );
         MockTransport { responses }
     }

@@ -236,7 +236,14 @@ impl IdentityClient {
             "{}/.well-known/openid-configuration",
             self.cfg.issuer.trim_end_matches('/')
         );
-        let disc: Discovery = self.http.get(url).send().await?.error_for_status()?.json().await?;
+        let disc: Discovery = self
+            .http
+            .get(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
         if disc.issuer != self.cfg.issuer {
             return Err(IdentityError::IssuerMismatch {
                 found: disc.issuer,
@@ -286,8 +293,14 @@ impl IdentityClient {
     ) -> Result<Claims, IdentityError> {
         let header = jsonwebtoken::decode_header(token)?;
         let kid = header.kid.clone().unwrap_or_default();
-        let jwks: jsonwebtoken::jwk::JwkSet =
-            self.http.get(jwks_uri).send().await?.error_for_status()?.json().await?;
+        let jwks: jsonwebtoken::jwk::JwkSet = self
+            .http
+            .get(jwks_uri)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
         let jwk = jwks
             .find(&kid)
             .ok_or_else(|| IdentityError::UnknownKid(kid.clone()))?;
@@ -309,7 +322,9 @@ mod tests {
         // 32 bytes -> 43 base64url chars (no padding).
         assert_eq!(p.verifier.len(), 43);
         assert_eq!(p.challenge.len(), 43);
-        assert!(!p.verifier.contains('=') && !p.verifier.contains('+') && !p.verifier.contains('/'));
+        assert!(
+            !p.verifier.contains('=') && !p.verifier.contains('+') && !p.verifier.contains('/')
+        );
         // distinct calls differ
         assert_ne!(pkce().verifier, p.verifier);
     }
@@ -370,7 +385,12 @@ mod tests {
             "iss": "https://identity-eu.proximi.io/", "aud": "someone-else",
             "exp": 9_999_999_999i64,
         });
-        let token = encode(&Header::new(Algorithm::HS256), &claims, &EncodingKey::from_secret(secret)).unwrap();
+        let token = encode(
+            &Header::new(Algorithm::HS256),
+            &claims,
+            &EncodingKey::from_secret(secret),
+        )
+        .unwrap();
         let mut v = Validation::new(Algorithm::HS256);
         v.set_issuer(&["https://identity-eu.proximi.io/"]);
         v.set_audience(&["demon-eu"]);

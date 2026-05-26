@@ -49,14 +49,20 @@ impl SessionStore {
 
     /// Insert a session under `id`.
     pub fn insert(&self, id: String, session: Session) {
-        let mut g = self.inner.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut g = self
+            .inner
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         g.insert(id, session);
     }
 
     /// Fetch a session if present and not expired (expired sessions are evicted).
     #[must_use]
     pub fn get(&self, id: &str, now_ms: i64) -> Option<Session> {
-        let mut g = self.inner.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut g = self
+            .inner
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         match g.get(id) {
             Some(s) if s.expires_at > now_ms => Some(s.clone()),
             Some(_) => {
@@ -69,7 +75,10 @@ impl SessionStore {
 
     /// Drop a session (logout).
     pub fn remove(&self, id: &str) {
-        let mut g = self.inner.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut g = self
+            .inner
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         g.remove(id);
     }
 }
@@ -98,14 +107,20 @@ impl PendingStore {
 
     /// Record a pending auth under its `state`.
     pub fn insert(&self, state: String, pending: Pending) {
-        let mut g = self.inner.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut g = self
+            .inner
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         g.insert(state, pending);
     }
 
     /// Consume (remove and return) the pending auth for `state`, if any.
     #[must_use]
     pub fn take(&self, state: &str) -> Option<Pending> {
-        let mut g = self.inner.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut g = self
+            .inner
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         g.remove(state)
     }
 }
