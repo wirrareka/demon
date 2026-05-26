@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Activity, Server, ListChecks, BookOpen, ScrollText, Building2 } from "lucide-react";
 import { cn } from "../lib/utils";
 
-export type Page = "fleet" | "jobs" | "runbooks" | "audit";
+export type Page = "fleet" | "jobs" | "runbooks" | "audit" | "tenants";
 
 interface NavItem {
   page: Page | null;
@@ -15,7 +15,7 @@ const NAV: NavItem[] = [
   { page: "jobs", label: "Jobs", icon: <ListChecks className="size-4" /> },
   { page: "runbooks", label: "Runbooks", icon: <BookOpen className="size-4" /> },
   { page: "audit", label: "Audit", icon: <ScrollText className="size-4" /> },
-  { page: null, label: "Tenants", icon: <Building2 className="size-4" /> },
+  { page: "tenants", label: "Tenants", icon: <Building2 className="size-4" /> },
 ];
 
 const TITLES: Record<Page, string> = {
@@ -23,6 +23,7 @@ const TITLES: Record<Page, string> = {
   jobs: "Guarded jobs",
   runbooks: "Runbooks",
   audit: "Audit trail",
+  tenants: "Tenants",
 };
 
 export function AppShell({
