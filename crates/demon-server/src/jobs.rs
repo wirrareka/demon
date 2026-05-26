@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use demon_clients::random_state;
 use demon_core::{
     authorize, ActionSpec, Actor, AuditEvent, DualControl, FactorPolicy, GuardedAction, JobState,
-    Outcome, Plan, Residency, Target,
+    Outcome, Plan, Principal, Residency, Target,
 };
 use demon_workers::exec::{execute, SshMutator};
 
@@ -27,10 +27,10 @@ use crate::{now_ms, now_rfc3339, AppState, ErrorBody};
 
 /// An in-flight or completed mutation job.
 #[derive(Clone)]
-pub struct Job {
-    id: String,
-    plan: Plan,
-    state: JobState,
+pub(crate) struct Job {
+    pub(crate) id: String,
+    pub(crate) plan: Plan,
+    pub(crate) state: JobState,
     dual: Option<DualControl>,
     report: Option<String>,
 }
@@ -48,14 +48,14 @@ impl JobStore {
         Self::default()
     }
 
-    fn put(&self, job: Job) {
+    pub(crate) fn put(&self, job: Job) {
         self.inner
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .insert(job.id.clone(), job);
     }
 
-    fn get(&self, id: &str) -> Option<Job> {
+    pub(crate) fn get(&self, id: &str) -> Option<Job> {
         self.inner
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
@@ -75,7 +75,7 @@ impl JobStore {
 
 // ---- DTOs ------------------------------------------------------------------
 
-fn state_str(s: JobState) -> &'static str {
+pub(crate) fn state_str(s: JobState) -> &'static str {
     match s {
         JobState::Planned => "planned",
         JobState::AwaitingApproval => "awaiting_approval",
@@ -162,32 +162,23 @@ async fn audit<R: Residency>(
 
 // ---- handlers --------------------------------------------------------------
 
-#[derive(Deserialize)]
-pub(crate) struct CreateReq {
-    action: String,
-    target: String,
-}
-
-/// `POST /api/v1/jobs` — authorize + plan an action.
-pub(crate) async fn create<R: Residency>(
-    State(s): State<AppState<R>>,
-    Extension(ctx): Extension<AuthCtx>,
-    Json(req): Json<CreateReq>,
-) -> Response {
-    let Some(ga) = GuardedAction::from_id(&req.action) else {
-        return err(StatusCode::NOT_FOUND, format!("unknown action {:?}", req.action));
-    };
-    let spec = ActionSpec::new(req.action.clone(), req.target.clone(), ga.class());
-    let cap = match authorize(&ctx.principal, spec) {
-        Ok(c) => c,
-        Err(e) => return err(StatusCode::FORBIDDEN, e.to_string()),
-    };
-    let Some(plan) = Plan::from_capability(&cap) else {
-        return err(StatusCode::INTERNAL_SERVER_ERROR, "could not build plan");
-    };
+/// Authorize + plan an action into a [`Job`], storing it. Shared by the jobs API and
+/// the runbook instantiation. Returns `(status, message)` on failure.
+pub(crate) fn plan_job<R: Residency>(
+    s: &AppState<R>,
+    principal: &Principal,
+    action_id: &str,
+    target: &str,
+) -> Result<Job, (StatusCode, String)> {
+    let ga = GuardedAction::from_id(action_id)
+        .ok_or((StatusCode::NOT_FOUND, format!("unknown action {action_id:?}")))?;
+    let spec = ActionSpec::new(action_id.to_owned(), target.to_owned(), ga.class());
+    let cap = authorize(principal, spec).map_err(|e| (StatusCode::FORBIDDEN, e.to_string()))?;
+    let plan = Plan::from_capability(&cap)
+        .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "could not build plan".to_owned()))?;
     let dual = plan
         .dual_control
-        .then(|| DualControl::new(ctx.principal.sub.clone(), 1));
+        .then(|| DualControl::new(principal.sub.clone(), 1));
     let state = if plan.dual_control {
         JobState::AwaitingApproval
     } else {
@@ -201,6 +192,25 @@ pub(crate) async fn create<R: Residency>(
         report: None,
     };
     s.jobs.put(job.clone());
+    Ok(job)
+}
+
+#[derive(Deserialize)]
+pub(crate) struct CreateReq {
+    action: String,
+    target: String,
+}
+
+/// `POST /api/v1/jobs` — authorize + plan an action.
+pub(crate) async fn create<R: Residency>(
+    State(s): State<AppState<R>>,
+    Extension(ctx): Extension<AuthCtx>,
+    Json(req): Json<CreateReq>,
+) -> Response {
+    let job = match plan_job(&s, &ctx.principal, &req.action, &req.target) {
+        Ok(j) => j,
+        Err((code, msg)) => return err(code, msg),
+    };
     audit(&s, &ctx.principal.sub, "job.plan", &job.plan.target, Outcome::Success).await;
     (StatusCode::CREATED, Json(dto(&job))).into_response()
 }

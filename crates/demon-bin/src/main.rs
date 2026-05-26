@@ -76,6 +76,7 @@ async fn run<R: Residency>(cfg: Config, seed: bool) -> anyhow::Result<()> {
         node,
         dev_no_auth: cfg.dev_no_auth,
         jobs: demon_server::JobStore::new(),
+        runbooks: demon_server::RunbookStore::new(),
         transport,
     };
     let app = router(state);

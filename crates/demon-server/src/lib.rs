@@ -10,6 +10,7 @@
 
 mod auth;
 mod jobs;
+mod runbooks;
 pub mod session;
 pub mod tls;
 
@@ -28,6 +29,7 @@ use demon_core::{available_actions, GuardedAction, HealthSnapshot, Residency};
 use demon_store::{Store, StoreError};
 
 pub use jobs::JobStore;
+pub use runbooks::RunbookStore;
 pub use session::{AuthCtx, PendingStore, SessionStore};
 
 /// Current wall-clock time in epoch milliseconds.
@@ -71,6 +73,8 @@ pub struct AppState<R: Residency> {
     pub dev_no_auth: bool,
     /// In-memory guarded-mutation job store.
     pub jobs: JobStore,
+    /// In-memory runbook-run store.
+    pub runbooks: RunbookStore,
     /// SSH transport used to execute mutations + verify (shared with the poller).
     pub transport: SshTransport,
 }
@@ -92,6 +96,9 @@ pub fn router<R: Residency>(state: AppState<R>) -> Router {
         .route("/api/v1/jobs/{id}/approve", post(jobs::approve::<R>))
         .route("/api/v1/jobs/{id}/confirm", post(jobs::confirm::<R>))
         .route("/api/v1/jobs/{id}/apply", post(jobs::apply::<R>))
+        .route("/api/v1/runbooks", get(runbooks::catalog::<R>))
+        .route("/api/v1/runbooks/{id}/runs", post(runbooks::start::<R>))
+        .route("/api/v1/runbooks/runs/{run_id}", get(runbooks::get_run::<R>))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth::<R>,
@@ -303,6 +310,7 @@ mod tests {
             node: "test".into(),
             dev_no_auth: false,
             jobs: JobStore::new(),
+            runbooks: RunbookStore::new(),
             transport: SshTransport::new("ops"),
         });
     }

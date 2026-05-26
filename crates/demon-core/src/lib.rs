@@ -22,6 +22,7 @@ pub mod health;
 pub mod inventory;
 pub mod mutation;
 pub mod residency;
+pub mod runbook;
 
 pub use action::{ActionClass, ActionSpec, Capability};
 pub use audit_event::{Actor, ActorKind, AuditEvent, Outcome, Target};
@@ -38,4 +39,5 @@ pub use inventory::{Fleet, HealthSnapshot, Host, Service, TargetKind, Tenant};
 pub use mutation::{
     available_actions, ApprovalError, DualControl, GuardedAction, JobState, Plan,
 };
+pub use runbook::{RunStatus, RunbookId, RunbookRun, RunbookStep};
 pub use residency::{Eu, Region, Residency, Uae};
