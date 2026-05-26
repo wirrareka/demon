@@ -15,6 +15,7 @@ export function App() {
   const [healthByHost, setHealthByHost] = useState<Record<string, HealthSnapshot[]>>({});
   const [live, setLive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hostsLoading, setHostsLoading] = useState(true);
   const [page, setPage] = useState<Page>("fleet");
   const [selectedHost, setSelectedHost] = useState<string | null>(null);
   const [operator, setOperator] = useState<string | null>(null);
@@ -50,6 +51,8 @@ export function App() {
         if (!cancelled) setHealthByHost(Object.fromEntries(entries));
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (!cancelled) setHostsLoading(false);
       }
     })();
 
@@ -99,6 +102,7 @@ export function App() {
           hosts={hosts}
           healthByHost={healthByHost}
           error={error}
+          loading={hostsLoading}
           onSelect={setSelectedHost}
         />
       )}

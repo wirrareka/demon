@@ -6,24 +6,30 @@ import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Table, THead, TBody, TR, TH, TD } from "../components/ui/table";
+import { Loading } from "../components/ui/spinner";
 import { cn } from "../lib/utils";
 
 export function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
+  // Silent refresh: update the list without clobbering an action error the user is reading.
   const reload = useCallback(async () => {
     try {
       setJobs(await api.jobs.list());
-      setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
   useEffect(() => {
     void reload();
+    const t = setInterval(() => void reload(), 4000);
+    return () => clearInterval(t);
   }, [reload]);
 
   const act = async (fn: () => Promise<unknown>, key: string) => {
@@ -98,7 +104,14 @@ export function JobsPage() {
             </TR>
           </THead>
           <TBody>
-            {jobs.length === 0 && (
+            {!loaded && jobs.length === 0 && (
+              <TR className="hover:bg-transparent">
+                <TD colSpan={5}>
+                  <Loading />
+                </TD>
+              </TR>
+            )}
+            {loaded && jobs.length === 0 && (
               <TR className="hover:bg-transparent">
                 <TD colSpan={5} className="py-6 text-center text-muted">
                   No jobs yet — start one from Runbooks, or POST /api/v1/jobs.

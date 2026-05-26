@@ -1,6 +1,7 @@
 import type { Host, HealthSnapshot, HealthStatus } from "../lib/api";
 import { HEALTH, worst } from "../lib/health";
 import { Card, CardContent } from "../components/ui/card";
+import { Loading } from "../components/ui/spinner";
 import { Table, THead, TBody, TR, TH, TD } from "../components/ui/table";
 import { HealthBadge } from "../components/HealthBadge";
 import { cn } from "../lib/utils";
@@ -24,11 +25,13 @@ export function FleetOverview({
   hosts,
   healthByHost,
   error,
+  loading,
   onSelect,
 }: {
   hosts: Host[];
   healthByHost: HealthByHost;
   error: string | null;
+  loading: boolean;
   onSelect: (id: string) => void;
 }) {
   if (error) {
@@ -41,6 +44,14 @@ export function FleetOverview({
             <code>DEMON_DEV_NO_AUTH=1</code> for a local trial.
           </p>
         </CardContent>
+      </Card>
+    );
+  }
+
+  if (loading && hosts.length === 0) {
+    return (
+      <Card>
+        <Loading className="px-4" />
       </Card>
     );
   }

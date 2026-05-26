@@ -3,13 +3,19 @@ import { api, type Tenant } from "../lib/api";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "../components/ui/table";
+import { Loading } from "../components/ui/spinner";
 
 export function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.tenants().then(setTenants).catch((e) => setError(String(e)));
+    api
+      .tenants()
+      .then(setTenants)
+      .catch((e) => setError(String(e)))
+      .finally(() => setLoaded(true));
   }, []);
 
   return (
@@ -31,7 +37,14 @@ export function TenantsPage() {
             </TR>
           </THead>
           <TBody>
-            {tenants.length === 0 && (
+            {!loaded && (
+              <TR className="hover:bg-transparent">
+                <TD colSpan={5}>
+                  <Loading />
+                </TD>
+              </TR>
+            )}
+            {loaded && tenants.length === 0 && (
               <TR className="hover:bg-transparent">
                 <TD colSpan={5} className="py-6 text-center text-muted">
                   No tenants.

@@ -3,6 +3,7 @@ import { api, type AuditRecord } from "../lib/api";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "../components/ui/table";
+import { Loading } from "../components/ui/spinner";
 
 function fmtTs(ms: number): string {
   return new Date(ms).toISOString().replace("T", " ").replace("Z", "");
@@ -10,11 +11,16 @@ function fmtTs(ms: number): string {
 
 export function AuditPage() {
   const [records, setRecords] = useState<AuditRecord[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [intact, setIntact] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.audit.list(200).then(setRecords).catch((e) => setError(String(e)));
+    api.audit
+      .list(200)
+      .then(setRecords)
+      .catch((e) => setError(String(e)))
+      .finally(() => setLoaded(true));
     api.audit.verify().then((v) => setIntact(v.intact)).catch(() => setIntact(null));
   }, []);
 
@@ -52,7 +58,14 @@ export function AuditPage() {
             </TR>
           </THead>
           <TBody>
-            {records.length === 0 && (
+            {!loaded && (
+              <TR className="hover:bg-transparent">
+                <TD colSpan={6}>
+                  <Loading />
+                </TD>
+              </TR>
+            )}
+            {loaded && records.length === 0 && (
               <TR className="hover:bg-transparent">
                 <TD colSpan={6} className="py-6 text-center text-muted">
                   No audit records yet.
