@@ -34,9 +34,12 @@ pub enum VaultError {
     /// Cert SAN role not permitted for this op (`403`).
     #[error("vault forbidden")]
     Forbidden,
-    /// Wrong group / tenant not in this group (`404`).
-    #[error("vault group/tenant mismatch")]
-    GroupMismatch,
+    /// `404` — group mismatch, tenant not in group, or unknown role (body has the code).
+    #[error("vault not found: {0}")]
+    NotFound(String),
+    /// `502` — backend (e.g. OpenSearch/RethinkDB) failed to create/drop the cred.
+    #[error("vault backend error: {0}")]
+    Backend(String),
 }
 
 /// Common lease envelope shared by every issued credential.
@@ -162,11 +165,10 @@ impl VaultClient {
             200..=299 => Ok(resp),
             401 => Err(VaultError::Unauthorized),
             403 => Err(VaultError::Forbidden),
-            404 => Err(VaultError::GroupMismatch),
-            409 => Err(VaultError::Conflict(
-                resp.text().await.unwrap_or_default(),
-            )),
+            404 => Err(VaultError::NotFound(resp.text().await.unwrap_or_default())),
+            409 => Err(VaultError::Conflict(resp.text().await.unwrap_or_default())),
             501 => Err(VaultError::NotImplemented),
+            502 => Err(VaultError::Backend(resp.text().await.unwrap_or_default())),
             503 => Err(VaultError::Sealed),
             _ => {
                 resp.error_for_status()?;
