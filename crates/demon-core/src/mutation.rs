@@ -26,16 +26,19 @@ pub enum GuardedAction {
     HostDrain,
     /// Update packages + refresh integrity checksums.
     PkgUpdate,
+    /// Horizontally scale a service out (spawn node(s) per the capacity model).
+    ScaleOut,
 }
 
 impl GuardedAction {
-    /// Every action in the Phase 3 catalog.
-    pub const ALL: [GuardedAction; 5] = [
+    /// Every action in the catalog.
+    pub const ALL: [GuardedAction; 6] = [
         GuardedAction::ServiceRestart,
         GuardedAction::CertRotate,
         GuardedAction::BackupRun,
         GuardedAction::HostDrain,
         GuardedAction::PkgUpdate,
+        GuardedAction::ScaleOut,
     ];
 
     /// Stable `<noun>.<verb>` id (also the audit `action`).
@@ -47,6 +50,7 @@ impl GuardedAction {
             GuardedAction::BackupRun => "backup.run",
             GuardedAction::HostDrain => "host.drain",
             GuardedAction::PkgUpdate => "pkg.update",
+            GuardedAction::ScaleOut => "service.scale-out",
         }
     }
 
@@ -57,7 +61,7 @@ impl GuardedAction {
             GuardedAction::ServiceRestart
             | GuardedAction::BackupRun
             | GuardedAction::PkgUpdate => ActionClass::Mutating,
-            GuardedAction::HostDrain => ActionClass::Destructive,
+            GuardedAction::HostDrain | GuardedAction::ScaleOut => ActionClass::Destructive,
             GuardedAction::CertRotate => ActionClass::CaUse,
         }
     }
@@ -69,7 +73,9 @@ impl GuardedAction {
             GuardedAction::BackupRun => Some("backup"),
             GuardedAction::PkgUpdate => Some("fim"),
             GuardedAction::CertRotate => Some("access"),
-            GuardedAction::ServiceRestart | GuardedAction::HostDrain => None,
+            GuardedAction::ServiceRestart | GuardedAction::HostDrain | GuardedAction::ScaleOut => {
+                None
+            }
         }
     }
 
@@ -271,6 +277,8 @@ mod tests {
         let senior = available_actions(&[Role::Senior]);
         assert!(senior.contains(&GuardedAction::HostDrain));
         assert!(senior.contains(&GuardedAction::CertRotate));
+        assert!(senior.contains(&GuardedAction::ScaleOut));
+        assert!(!operator.contains(&GuardedAction::ScaleOut)); // Destructive
     }
 
     #[test]

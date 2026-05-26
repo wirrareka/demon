@@ -17,6 +17,7 @@ pub mod audit;
 pub mod audit_event;
 pub mod auth;
 pub mod authorize;
+pub mod bottleneck;
 pub mod contracts;
 pub mod health;
 pub mod inventory;
@@ -26,6 +27,10 @@ pub mod runbook;
 
 pub use action::{ActionClass, ActionSpec, Capability};
 pub use audit_event::{Actor, ActorKind, AuditEvent, Outcome, Target};
+pub use bottleneck::{
+    analyze, desired_nodes, detect, BottleneckReport, CapacityModel, Confidence, Finding,
+    ScaleRecommendation, ServiceLoad,
+};
 pub use auth::{principal_from_claims, AuthnError, Claims, FactorLevel, FactorPolicy};
 pub use audit::{AuditChain, AuditRecord, GENESIS_HASH};
 pub use authorize::{authorize, AuthzError, Principal, Role};
