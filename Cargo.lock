@@ -288,6 +288,7 @@ version = "0.0.0"
 dependencies = [
  "hex",
  "serde",
+ "serde_json",
  "sha2",
  "thiserror",
 ]
@@ -313,6 +314,7 @@ dependencies = [
  "demon-store",
  "serde",
  "serde_json",
+ "time",
  "tokio",
  "tracing",
 ]

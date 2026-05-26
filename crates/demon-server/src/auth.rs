@@ -16,11 +16,11 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum::Json;
 use serde::Deserialize;
 
-use demon_core::{principal_from_claims, FactorLevel, Residency};
+use demon_core::{principal_from_claims, Actor, AuditEvent, FactorLevel, Outcome, Residency, Target};
 use demon_clients::{authorize_url, pkce, random_state};
 
 use crate::session::{Pending, Session};
-use crate::{now_ms, AppState, ErrorBody};
+use crate::{now_ms, now_rfc3339, AppState, ErrorBody};
 
 /// Session cookie name. Prod adds the `__Host-` prefix + `Secure` over TLS.
 const COOKIE: &str = "demon_session";
@@ -31,6 +31,31 @@ const SESSION_TTL_SECS: i64 = 28_800;
 
 fn bad_gateway(error: String) -> Response {
     (StatusCode::BAD_GATEWAY, Json(ErrorBody { error })).into_response()
+}
+
+/// Fire-and-forget B3 audit fan-out (best-effort; never blocks the response).
+fn emit_audit<R: Residency>(
+    s: &AppState<R>,
+    actor: Actor,
+    action: &'static str,
+    target: Target,
+    outcome: Outcome,
+) {
+    let Some(audit) = s.audit.clone() else { return };
+    let ev = AuditEvent::control_plane(
+        now_rfc3339(),
+        s.node.clone(),
+        R::REGION,
+        actor,
+        action,
+        target,
+        outcome,
+    );
+    tokio::spawn(async move {
+        if let Err(e) = audit.ship(&ev).await {
+            tracing::warn!(error = %e, "audit ship failed");
+        }
+    });
 }
 
 /// Extract the session id from the `Cookie` header.
@@ -143,6 +168,13 @@ pub(crate) async fn callback<R: Residency>(
         },
     );
     tracing::info!(region = %R::REGION, "operator session opened");
+    emit_audit(
+        &s,
+        Actor::user(claims.sub.clone(), Some(claims.tenant_id.clone())),
+        "session.open",
+        Target::new("session", Some(sid.clone())),
+        Outcome::Success,
+    );
     (
         [(header::SET_COOKIE, set_cookie(&sid, SESSION_TTL_SECS))],
         Redirect::to("/"),
@@ -156,6 +188,15 @@ pub(crate) async fn logout<R: Residency>(
     headers: HeaderMap,
 ) -> Response {
     if let Some(id) = session_cookie(&headers) {
+        if let Some(sess) = s.sessions.get(&id, now_ms()) {
+            emit_audit(
+                &s,
+                Actor::user(sess.principal.sub.clone(), None),
+                "session.close",
+                Target::new("session", Some(id.clone())),
+                Outcome::Success,
+            );
+        }
         s.sessions.remove(&id);
     }
     (

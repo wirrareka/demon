@@ -47,6 +47,14 @@ async fn run<R: Residency>(cfg: Config) -> anyhow::Result<()> {
         tracing::warn!("OIDC not configured (DEMON_OIDC_ISSUER unset) — API stays closed");
     }
 
+    let audit = std::env::var("DEMON_OPENSEARCH_URL")
+        .ok()
+        .map(demon_clients::OpenSearchAudit::new);
+    if audit.is_none() {
+        tracing::warn!("DEMON_OPENSEARCH_URL unset — audit fan-out to OpenSearch disabled");
+    }
+    let node = std::env::var("DEMON_NODE").unwrap_or_else(|_| format!("demon-{}", R::REGION));
+
     let state = AppState {
         version: env!("CARGO_PKG_VERSION"),
         store,
@@ -54,6 +62,8 @@ async fn run<R: Residency>(cfg: Config) -> anyhow::Result<()> {
         identity,
         sessions: demon_server::SessionStore::new(),
         pending: demon_server::PendingStore::new(),
+        audit,
+        node,
     };
     let app = router(state);
 

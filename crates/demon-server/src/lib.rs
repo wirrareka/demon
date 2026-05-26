@@ -20,7 +20,7 @@ use axum::{middleware, Json, Router};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
-use demon_clients::IdentityClient;
+use demon_clients::{IdentityClient, OpenSearchAudit};
 use demon_core::{HealthSnapshot, Residency};
 use demon_store::{Store, StoreError};
 
@@ -34,6 +34,13 @@ pub(crate) fn now_ms() -> i64 {
         .ok()
         .and_then(|d| i64::try_from(d.as_millis()).ok())
         .unwrap_or(i64::MAX)
+}
+
+/// Current UTC time as an RFC3339 string (for B3 audit-event `ts`).
+pub(crate) fn now_rfc3339() -> String {
+    time::OffsetDateTime::now_utc()
+        .format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_default()
 }
 
 /// Shared, cheaply-cloneable server state, scoped to one residency group.
@@ -51,6 +58,10 @@ pub struct AppState<R: Residency> {
     pub sessions: SessionStore,
     /// In-flight PKCE auth state.
     pub pending: PendingStore,
+    /// Group-local OpenSearch audit shipper (`None` ⇒ audit fan-out disabled).
+    pub audit: Option<OpenSearchAudit>,
+    /// This daemon's node hostname (B3 `node` field).
+    pub node: String,
 }
 
 /// Build the router for residency group `R`. Liveness (`/health`, `/version`) and the
@@ -270,6 +281,8 @@ mod tests {
             identity: None,
             sessions: SessionStore::new(),
             pending: PendingStore::new(),
+            audit: None,
+            node: "test".into(),
         });
     }
 }
