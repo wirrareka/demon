@@ -9,6 +9,8 @@
 //! Schedulers, the bottleneck analyzer, and the drift reconciler arrive in later phases.
 #![forbid(unsafe_code)]
 
+pub mod exec;
+
 use std::time::Duration;
 
 use demon_core::{HealthSnapshot, HealthStatus, Residency, TargetKind};

@@ -69,6 +69,12 @@ impl CheckArea {
         }
     }
 
+    /// Parse a canonical area name back into a [`CheckArea`].
+    #[must_use]
+    pub fn from_area(area: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|a| a.as_str() == area)
+    }
+
     /// The host-side command that emits this area's contract.
     #[must_use]
     pub const fn command(self) -> &'static str {
