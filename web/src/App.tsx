@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { AppShell } from "./components/AppShell";
+import { AppShell, type Page } from "./components/AppShell";
 import { FleetOverview } from "./pages/FleetOverview";
+import { JobsPage } from "./pages/JobsPage";
+import { RunbooksPage } from "./pages/RunbooksPage";
 import { api, openStream, type Host, type HealthSnapshot } from "./lib/api";
 
 export function App() {
@@ -10,6 +12,7 @@ export function App() {
   const [healthByHost, setHealthByHost] = useState<Record<string, HealthSnapshot[]>>({});
   const [live, setLive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState<Page>("fleet");
 
   // Version is public (works even when the API is gated); fleet needs auth/dev-mode.
   useEffect(() => {
@@ -58,8 +61,12 @@ export function App() {
   }, []);
 
   return (
-    <AppShell region={region} version={version} live={live}>
-      <FleetOverview hosts={hosts} healthByHost={healthByHost} error={error} />
+    <AppShell region={region} version={version} live={live} active={page} onNavigate={setPage}>
+      {page === "fleet" && (
+        <FleetOverview hosts={hosts} healthByHost={healthByHost} error={error} />
+      )}
+      {page === "jobs" && <JobsPage />}
+      {page === "runbooks" && <RunbooksPage onStarted={() => undefined} />}
     </AppShell>
   );
 }
